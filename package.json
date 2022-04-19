@@ -1,0 +1,31 @@
+{
+  "name": "js-verify-sdk",
+  "version": "1.0.1",
+  "description": "SDK for Verify from Diamond Hands Hotel",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "exports": {
+    ".": {
+      "import": "./dist/verify.es.js",
+      "browser": {
+        "default": "./dist/verify.umd.js"
+      }
+    },
+    "solana": {
+      "import": "./dist/verify.solana.es.js",
+      "require": "./dist/verify.solana.umd.js"
+    },
+    "polygon": {
+      "import": "./dist/verify.polygon.es.js",
+      "require": "./dist/verify.polygon.umd.js"
+    },
+    "ethereum": {
+      "import": "./dist/verify.ethereum.es.js",
+      "require": "./dist/verify.ethereum.umd.js"
+    }
+  }
+}
