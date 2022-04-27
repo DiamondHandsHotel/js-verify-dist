@@ -1,8 +1,8 @@
 {
-  "name": "js-verify-sdk",
-  "version": "1.0.1",
+  "name": "@diamondhh/verify",
+  "version": "1.0.0",
   "description": "SDK for Verify from Diamond Hands Hotel",
-  "main": "index.js",
+  "main": "./dist/verify.es.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -27,5 +27,13 @@
       "import": "./dist/verify.ethereum.es.js",
       "require": "./dist/verify.ethereum.umd.js"
     }
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DiamondHandsHotel/js-verify-dist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DiamondHandsHotel/js-verify-dist/issues"
+  },
+  "homepage": "https://github.com/DiamondHandsHotel/js-verify-dist#readme"
 }
