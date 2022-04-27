@@ -30,10 +30,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DiamondHandsHotel/js-verify-dist.git"
+    "url": "git+https://github.com/DiamondHandsHotel/verify.git"
   },
   "bugs": {
-    "url": "https://github.com/DiamondHandsHotel/js-verify-dist/issues"
+    "url": "https://github.com/DiamondHandsHotel/verify/issues"
   },
-  "homepage": "https://github.com/DiamondHandsHotel/js-verify-dist#readme"
+  "homepage": "https://diamondhandshotel.com/verify"
 }
