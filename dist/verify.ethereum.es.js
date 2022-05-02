@@ -31237,6 +31237,2245 @@ class Wallet {
   }
 }
 var Wallet$1 = new Wallet();
+var axios$2 = { exports: {} };
+var bind$3 = function bind(fn, thisArg) {
+  return function wrap() {
+    var args = new Array(arguments.length);
+    for (var i2 = 0; i2 < args.length; i2++) {
+      args[i2] = arguments[i2];
+    }
+    return fn.apply(thisArg, args);
+  };
+};
+var bind$2 = bind$3;
+var toString2 = Object.prototype.toString;
+function isArray(val) {
+  return Array.isArray(val);
+}
+function isUndefined(val) {
+  return typeof val === "undefined";
+}
+function isBuffer2(val) {
+  return val !== null && !isUndefined(val) && val.constructor !== null && !isUndefined(val.constructor) && typeof val.constructor.isBuffer === "function" && val.constructor.isBuffer(val);
+}
+function isArrayBuffer(val) {
+  return toString2.call(val) === "[object ArrayBuffer]";
+}
+function isFormData(val) {
+  return toString2.call(val) === "[object FormData]";
+}
+function isArrayBufferView(val) {
+  var result;
+  if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView) {
+    result = ArrayBuffer.isView(val);
+  } else {
+    result = val && val.buffer && isArrayBuffer(val.buffer);
+  }
+  return result;
+}
+function isString(val) {
+  return typeof val === "string";
+}
+function isNumber(val) {
+  return typeof val === "number";
+}
+function isObject$1(val) {
+  return val !== null && typeof val === "object";
+}
+function isPlainObject(val) {
+  if (toString2.call(val) !== "[object Object]") {
+    return false;
+  }
+  var prototype = Object.getPrototypeOf(val);
+  return prototype === null || prototype === Object.prototype;
+}
+function isDate(val) {
+  return toString2.call(val) === "[object Date]";
+}
+function isFile(val) {
+  return toString2.call(val) === "[object File]";
+}
+function isBlob(val) {
+  return toString2.call(val) === "[object Blob]";
+}
+function isFunction(val) {
+  return toString2.call(val) === "[object Function]";
+}
+function isStream(val) {
+  return isObject$1(val) && isFunction(val.pipe);
+}
+function isURLSearchParams(val) {
+  return toString2.call(val) === "[object URLSearchParams]";
+}
+function trim(str) {
+  return str.trim ? str.trim() : str.replace(/^\s+|\s+$/g, "");
+}
+function isStandardBrowserEnv() {
+  if (typeof navigator !== "undefined" && (navigator.product === "ReactNative" || navigator.product === "NativeScript" || navigator.product === "NS")) {
+    return false;
+  }
+  return typeof window !== "undefined" && typeof document !== "undefined";
+}
+function forEach(obj, fn) {
+  if (obj === null || typeof obj === "undefined") {
+    return;
+  }
+  if (typeof obj !== "object") {
+    obj = [obj];
+  }
+  if (isArray(obj)) {
+    for (var i2 = 0, l2 = obj.length; i2 < l2; i2++) {
+      fn.call(null, obj[i2], i2, obj);
+    }
+  } else {
+    for (var key2 in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key2)) {
+        fn.call(null, obj[key2], key2, obj);
+      }
+    }
+  }
+}
+function merge() {
+  var result = {};
+  function assignValue(val, key2) {
+    if (isPlainObject(result[key2]) && isPlainObject(val)) {
+      result[key2] = merge(result[key2], val);
+    } else if (isPlainObject(val)) {
+      result[key2] = merge({}, val);
+    } else if (isArray(val)) {
+      result[key2] = val.slice();
+    } else {
+      result[key2] = val;
+    }
+  }
+  for (var i2 = 0, l2 = arguments.length; i2 < l2; i2++) {
+    forEach(arguments[i2], assignValue);
+  }
+  return result;
+}
+function extend(a2, b2, thisArg) {
+  forEach(b2, function assignValue(val, key2) {
+    if (thisArg && typeof val === "function") {
+      a2[key2] = bind$2(val, thisArg);
+    } else {
+      a2[key2] = val;
+    }
+  });
+  return a2;
+}
+function stripBOM(content) {
+  if (content.charCodeAt(0) === 65279) {
+    content = content.slice(1);
+  }
+  return content;
+}
+var utils$e = {
+  isArray,
+  isArrayBuffer,
+  isBuffer: isBuffer2,
+  isFormData,
+  isArrayBufferView,
+  isString,
+  isNumber,
+  isObject: isObject$1,
+  isPlainObject,
+  isUndefined,
+  isDate,
+  isFile,
+  isBlob,
+  isFunction,
+  isStream,
+  isURLSearchParams,
+  isStandardBrowserEnv,
+  forEach,
+  merge,
+  extend,
+  trim,
+  stripBOM
+};
+var utils$d = utils$e;
+function encode3(val) {
+  return encodeURIComponent(val).replace(/%3A/gi, ":").replace(/%24/g, "$").replace(/%2C/gi, ",").replace(/%20/g, "+").replace(/%5B/gi, "[").replace(/%5D/gi, "]");
+}
+var buildURL$2 = function buildURL(url, params, paramsSerializer) {
+  if (!params) {
+    return url;
+  }
+  var serializedParams;
+  if (paramsSerializer) {
+    serializedParams = paramsSerializer(params);
+  } else if (utils$d.isURLSearchParams(params)) {
+    serializedParams = params.toString();
+  } else {
+    var parts = [];
+    utils$d.forEach(params, function serialize(val, key2) {
+      if (val === null || typeof val === "undefined") {
+        return;
+      }
+      if (utils$d.isArray(val)) {
+        key2 = key2 + "[]";
+      } else {
+        val = [val];
+      }
+      utils$d.forEach(val, function parseValue(v2) {
+        if (utils$d.isDate(v2)) {
+          v2 = v2.toISOString();
+        } else if (utils$d.isObject(v2)) {
+          v2 = JSON.stringify(v2);
+        }
+        parts.push(encode3(key2) + "=" + encode3(v2));
+      });
+    });
+    serializedParams = parts.join("&");
+  }
+  if (serializedParams) {
+    var hashmarkIndex = url.indexOf("#");
+    if (hashmarkIndex !== -1) {
+      url = url.slice(0, hashmarkIndex);
+    }
+    url += (url.indexOf("?") === -1 ? "?" : "&") + serializedParams;
+  }
+  return url;
+};
+var utils$c = utils$e;
+function InterceptorManager$1() {
+  this.handlers = [];
+}
+InterceptorManager$1.prototype.use = function use(fulfilled, rejected, options) {
+  this.handlers.push({
+    fulfilled,
+    rejected,
+    synchronous: options ? options.synchronous : false,
+    runWhen: options ? options.runWhen : null
+  });
+  return this.handlers.length - 1;
+};
+InterceptorManager$1.prototype.eject = function eject(id2) {
+  if (this.handlers[id2]) {
+    this.handlers[id2] = null;
+  }
+};
+InterceptorManager$1.prototype.forEach = function forEach2(fn) {
+  utils$c.forEach(this.handlers, function forEachHandler(h2) {
+    if (h2 !== null) {
+      fn(h2);
+    }
+  });
+};
+var InterceptorManager_1 = InterceptorManager$1;
+var utils$b = utils$e;
+var normalizeHeaderName$1 = function normalizeHeaderName(headers, normalizedName) {
+  utils$b.forEach(headers, function processHeader(value, name) {
+    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
+      headers[normalizedName] = value;
+      delete headers[name];
+    }
+  });
+};
+var enhanceError$2 = function enhanceError(error, config2, code2, request2, response) {
+  error.config = config2;
+  if (code2) {
+    error.code = code2;
+  }
+  error.request = request2;
+  error.response = response;
+  error.isAxiosError = true;
+  error.toJSON = function toJSON3() {
+    return {
+      message: this.message,
+      name: this.name,
+      description: this.description,
+      number: this.number,
+      fileName: this.fileName,
+      lineNumber: this.lineNumber,
+      columnNumber: this.columnNumber,
+      stack: this.stack,
+      config: this.config,
+      code: this.code,
+      status: this.response && this.response.status ? this.response.status : null
+    };
+  };
+  return error;
+};
+var enhanceError$1 = enhanceError$2;
+var createError$2 = function createError(message, config2, code2, request2, response) {
+  var error = new Error(message);
+  return enhanceError$1(error, config2, code2, request2, response);
+};
+var createError$1 = createError$2;
+var settle$1 = function settle(resolve2, reject, response) {
+  var validateStatus2 = response.config.validateStatus;
+  if (!response.status || !validateStatus2 || validateStatus2(response.status)) {
+    resolve2(response);
+  } else {
+    reject(createError$1("Request failed with status code " + response.status, response.config, null, response.request, response));
+  }
+};
+var utils$a = utils$e;
+var cookies$1 = utils$a.isStandardBrowserEnv() ? function standardBrowserEnv() {
+  return {
+    write: function write6(name, value, expires, path, domain2, secure) {
+      var cookie = [];
+      cookie.push(name + "=" + encodeURIComponent(value));
+      if (utils$a.isNumber(expires)) {
+        cookie.push("expires=" + new Date(expires).toGMTString());
+      }
+      if (utils$a.isString(path)) {
+        cookie.push("path=" + path);
+      }
+      if (utils$a.isString(domain2)) {
+        cookie.push("domain=" + domain2);
+      }
+      if (secure === true) {
+        cookie.push("secure");
+      }
+      document.cookie = cookie.join("; ");
+    },
+    read: function read2(name) {
+      var match = document.cookie.match(new RegExp("(^|;\\s*)(" + name + ")=([^;]*)"));
+      return match ? decodeURIComponent(match[3]) : null;
+    },
+    remove: function remove2(name) {
+      this.write(name, "", Date.now() - 864e5);
+    }
+  };
+}() : function nonStandardBrowserEnv() {
+  return {
+    write: function write6() {
+    },
+    read: function read2() {
+      return null;
+    },
+    remove: function remove2() {
+    }
+  };
+}();
+var isAbsoluteURL$1 = function isAbsoluteURL(url) {
+  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
+};
+var combineURLs$1 = function combineURLs(baseURL, relativeURL) {
+  return relativeURL ? baseURL.replace(/\/+$/, "") + "/" + relativeURL.replace(/^\/+/, "") : baseURL;
+};
+var isAbsoluteURL2 = isAbsoluteURL$1;
+var combineURLs2 = combineURLs$1;
+var buildFullPath$1 = function buildFullPath(baseURL, requestedURL) {
+  if (baseURL && !isAbsoluteURL2(requestedURL)) {
+    return combineURLs2(baseURL, requestedURL);
+  }
+  return requestedURL;
+};
+var utils$9 = utils$e;
+var ignoreDuplicateOf = [
+  "age",
+  "authorization",
+  "content-length",
+  "content-type",
+  "etag",
+  "expires",
+  "from",
+  "host",
+  "if-modified-since",
+  "if-unmodified-since",
+  "last-modified",
+  "location",
+  "max-forwards",
+  "proxy-authorization",
+  "referer",
+  "retry-after",
+  "user-agent"
+];
+var parseHeaders$1 = function parseHeaders(headers) {
+  var parsed = {};
+  var key2;
+  var val;
+  var i2;
+  if (!headers) {
+    return parsed;
+  }
+  utils$9.forEach(headers.split("\n"), function parser(line) {
+    i2 = line.indexOf(":");
+    key2 = utils$9.trim(line.substr(0, i2)).toLowerCase();
+    val = utils$9.trim(line.substr(i2 + 1));
+    if (key2) {
+      if (parsed[key2] && ignoreDuplicateOf.indexOf(key2) >= 0) {
+        return;
+      }
+      if (key2 === "set-cookie") {
+        parsed[key2] = (parsed[key2] ? parsed[key2] : []).concat([val]);
+      } else {
+        parsed[key2] = parsed[key2] ? parsed[key2] + ", " + val : val;
+      }
+    }
+  });
+  return parsed;
+};
+var utils$8 = utils$e;
+var isURLSameOrigin$1 = utils$8.isStandardBrowserEnv() ? function standardBrowserEnv2() {
+  var msie = /(msie|trident)/i.test(navigator.userAgent);
+  var urlParsingNode = document.createElement("a");
+  var originURL;
+  function resolveURL(url) {
+    var href = url;
+    if (msie) {
+      urlParsingNode.setAttribute("href", href);
+      href = urlParsingNode.href;
+    }
+    urlParsingNode.setAttribute("href", href);
+    return {
+      href: urlParsingNode.href,
+      protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, "") : "",
+      host: urlParsingNode.host,
+      search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, "") : "",
+      hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, "") : "",
+      hostname: urlParsingNode.hostname,
+      port: urlParsingNode.port,
+      pathname: urlParsingNode.pathname.charAt(0) === "/" ? urlParsingNode.pathname : "/" + urlParsingNode.pathname
+    };
+  }
+  originURL = resolveURL(window.location.href);
+  return function isURLSameOrigin2(requestURL) {
+    var parsed = utils$8.isString(requestURL) ? resolveURL(requestURL) : requestURL;
+    return parsed.protocol === originURL.protocol && parsed.host === originURL.host;
+  };
+}() : function nonStandardBrowserEnv2() {
+  return function isURLSameOrigin2() {
+    return true;
+  };
+}();
+function Cancel$3(message) {
+  this.message = message;
+}
+Cancel$3.prototype.toString = function toString3() {
+  return "Cancel" + (this.message ? ": " + this.message : "");
+};
+Cancel$3.prototype.__CANCEL__ = true;
+var Cancel_1 = Cancel$3;
+var utils$7 = utils$e;
+var settle2 = settle$1;
+var cookies = cookies$1;
+var buildURL$1 = buildURL$2;
+var buildFullPath2 = buildFullPath$1;
+var parseHeaders2 = parseHeaders$1;
+var isURLSameOrigin = isURLSameOrigin$1;
+var createError2 = createError$2;
+var defaults$4 = defaults_1;
+var Cancel$2 = Cancel_1;
+var xhr = function xhrAdapter(config2) {
+  return new Promise(function dispatchXhrRequest(resolve2, reject) {
+    var requestData = config2.data;
+    var requestHeaders = config2.headers;
+    var responseType = config2.responseType;
+    var onCanceled;
+    function done() {
+      if (config2.cancelToken) {
+        config2.cancelToken.unsubscribe(onCanceled);
+      }
+      if (config2.signal) {
+        config2.signal.removeEventListener("abort", onCanceled);
+      }
+    }
+    if (utils$7.isFormData(requestData)) {
+      delete requestHeaders["Content-Type"];
+    }
+    var request2 = new XMLHttpRequest();
+    if (config2.auth) {
+      var username = config2.auth.username || "";
+      var password = config2.auth.password ? unescape(encodeURIComponent(config2.auth.password)) : "";
+      requestHeaders.Authorization = "Basic " + btoa(username + ":" + password);
+    }
+    var fullPath = buildFullPath2(config2.baseURL, config2.url);
+    request2.open(config2.method.toUpperCase(), buildURL$1(fullPath, config2.params, config2.paramsSerializer), true);
+    request2.timeout = config2.timeout;
+    function onloadend() {
+      if (!request2) {
+        return;
+      }
+      var responseHeaders = "getAllResponseHeaders" in request2 ? parseHeaders2(request2.getAllResponseHeaders()) : null;
+      var responseData = !responseType || responseType === "text" || responseType === "json" ? request2.responseText : request2.response;
+      var response = {
+        data: responseData,
+        status: request2.status,
+        statusText: request2.statusText,
+        headers: responseHeaders,
+        config: config2,
+        request: request2
+      };
+      settle2(function _resolve(value) {
+        resolve2(value);
+        done();
+      }, function _reject(err) {
+        reject(err);
+        done();
+      }, response);
+      request2 = null;
+    }
+    if ("onloadend" in request2) {
+      request2.onloadend = onloadend;
+    } else {
+      request2.onreadystatechange = function handleLoad() {
+        if (!request2 || request2.readyState !== 4) {
+          return;
+        }
+        if (request2.status === 0 && !(request2.responseURL && request2.responseURL.indexOf("file:") === 0)) {
+          return;
+        }
+        setTimeout(onloadend);
+      };
+    }
+    request2.onabort = function handleAbort() {
+      if (!request2) {
+        return;
+      }
+      reject(createError2("Request aborted", config2, "ECONNABORTED", request2));
+      request2 = null;
+    };
+    request2.onerror = function handleError2() {
+      reject(createError2("Network Error", config2, null, request2));
+      request2 = null;
+    };
+    request2.ontimeout = function handleTimeout() {
+      var timeoutErrorMessage = config2.timeout ? "timeout of " + config2.timeout + "ms exceeded" : "timeout exceeded";
+      var transitional2 = config2.transitional || defaults$4.transitional;
+      if (config2.timeoutErrorMessage) {
+        timeoutErrorMessage = config2.timeoutErrorMessage;
+      }
+      reject(createError2(timeoutErrorMessage, config2, transitional2.clarifyTimeoutError ? "ETIMEDOUT" : "ECONNABORTED", request2));
+      request2 = null;
+    };
+    if (utils$7.isStandardBrowserEnv()) {
+      var xsrfValue = (config2.withCredentials || isURLSameOrigin(fullPath)) && config2.xsrfCookieName ? cookies.read(config2.xsrfCookieName) : void 0;
+      if (xsrfValue) {
+        requestHeaders[config2.xsrfHeaderName] = xsrfValue;
+      }
+    }
+    if ("setRequestHeader" in request2) {
+      utils$7.forEach(requestHeaders, function setRequestHeader(val, key2) {
+        if (typeof requestData === "undefined" && key2.toLowerCase() === "content-type") {
+          delete requestHeaders[key2];
+        } else {
+          request2.setRequestHeader(key2, val);
+        }
+      });
+    }
+    if (!utils$7.isUndefined(config2.withCredentials)) {
+      request2.withCredentials = !!config2.withCredentials;
+    }
+    if (responseType && responseType !== "json") {
+      request2.responseType = config2.responseType;
+    }
+    if (typeof config2.onDownloadProgress === "function") {
+      request2.addEventListener("progress", config2.onDownloadProgress);
+    }
+    if (typeof config2.onUploadProgress === "function" && request2.upload) {
+      request2.upload.addEventListener("progress", config2.onUploadProgress);
+    }
+    if (config2.cancelToken || config2.signal) {
+      onCanceled = function(cancel) {
+        if (!request2) {
+          return;
+        }
+        reject(!cancel || cancel && cancel.type ? new Cancel$2("canceled") : cancel);
+        request2.abort();
+        request2 = null;
+      };
+      config2.cancelToken && config2.cancelToken.subscribe(onCanceled);
+      if (config2.signal) {
+        config2.signal.aborted ? onCanceled() : config2.signal.addEventListener("abort", onCanceled);
+      }
+    }
+    if (!requestData) {
+      requestData = null;
+    }
+    request2.send(requestData);
+  });
+};
+var utils$6 = utils$e;
+var normalizeHeaderName2 = normalizeHeaderName$1;
+var enhanceError2 = enhanceError$2;
+var DEFAULT_CONTENT_TYPE = {
+  "Content-Type": "application/x-www-form-urlencoded"
+};
+function setContentTypeIfUnset(headers, value) {
+  if (!utils$6.isUndefined(headers) && utils$6.isUndefined(headers["Content-Type"])) {
+    headers["Content-Type"] = value;
+  }
+}
+function getDefaultAdapter() {
+  var adapter;
+  if (typeof XMLHttpRequest !== "undefined") {
+    adapter = xhr;
+  } else if (typeof browser$1$1 !== "undefined" && Object.prototype.toString.call(browser$1$1) === "[object process]") {
+    adapter = xhr;
+  }
+  return adapter;
+}
+function stringifySafely(rawValue, parser, encoder) {
+  if (utils$6.isString(rawValue)) {
+    try {
+      (parser || JSON.parse)(rawValue);
+      return utils$6.trim(rawValue);
+    } catch (e2) {
+      if (e2.name !== "SyntaxError") {
+        throw e2;
+      }
+    }
+  }
+  return (encoder || JSON.stringify)(rawValue);
+}
+var defaults$3 = {
+  transitional: {
+    silentJSONParsing: true,
+    forcedJSONParsing: true,
+    clarifyTimeoutError: false
+  },
+  adapter: getDefaultAdapter(),
+  transformRequest: [function transformRequest(data2, headers) {
+    normalizeHeaderName2(headers, "Accept");
+    normalizeHeaderName2(headers, "Content-Type");
+    if (utils$6.isFormData(data2) || utils$6.isArrayBuffer(data2) || utils$6.isBuffer(data2) || utils$6.isStream(data2) || utils$6.isFile(data2) || utils$6.isBlob(data2)) {
+      return data2;
+    }
+    if (utils$6.isArrayBufferView(data2)) {
+      return data2.buffer;
+    }
+    if (utils$6.isURLSearchParams(data2)) {
+      setContentTypeIfUnset(headers, "application/x-www-form-urlencoded;charset=utf-8");
+      return data2.toString();
+    }
+    if (utils$6.isObject(data2) || headers && headers["Content-Type"] === "application/json") {
+      setContentTypeIfUnset(headers, "application/json");
+      return stringifySafely(data2);
+    }
+    return data2;
+  }],
+  transformResponse: [function transformResponse(data2) {
+    var transitional2 = this.transitional || defaults$3.transitional;
+    var silentJSONParsing = transitional2 && transitional2.silentJSONParsing;
+    var forcedJSONParsing = transitional2 && transitional2.forcedJSONParsing;
+    var strictJSONParsing = !silentJSONParsing && this.responseType === "json";
+    if (strictJSONParsing || forcedJSONParsing && utils$6.isString(data2) && data2.length) {
+      try {
+        return JSON.parse(data2);
+      } catch (e2) {
+        if (strictJSONParsing) {
+          if (e2.name === "SyntaxError") {
+            throw enhanceError2(e2, this, "E_JSON_PARSE");
+          }
+          throw e2;
+        }
+      }
+    }
+    return data2;
+  }],
+  timeout: 0,
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
+  maxContentLength: -1,
+  maxBodyLength: -1,
+  validateStatus: function validateStatus(status) {
+    return status >= 200 && status < 300;
+  },
+  headers: {
+    common: {
+      "Accept": "application/json, text/plain, */*"
+    }
+  }
+};
+utils$6.forEach(["delete", "get", "head"], function forEachMethodNoData(method) {
+  defaults$3.headers[method] = {};
+});
+utils$6.forEach(["post", "put", "patch"], function forEachMethodWithData(method) {
+  defaults$3.headers[method] = utils$6.merge(DEFAULT_CONTENT_TYPE);
+});
+var defaults_1 = defaults$3;
+var utils$5 = utils$e;
+var defaults$2 = defaults_1;
+var transformData$1 = function transformData(data2, headers, fns) {
+  var context = this || defaults$2;
+  utils$5.forEach(fns, function transform(fn) {
+    data2 = fn.call(context, data2, headers);
+  });
+  return data2;
+};
+var isCancel$1 = function isCancel(value) {
+  return !!(value && value.__CANCEL__);
+};
+var utils$4 = utils$e;
+var transformData2 = transformData$1;
+var isCancel2 = isCancel$1;
+var defaults$1 = defaults_1;
+var Cancel$1 = Cancel_1;
+function throwIfCancellationRequested(config2) {
+  if (config2.cancelToken) {
+    config2.cancelToken.throwIfRequested();
+  }
+  if (config2.signal && config2.signal.aborted) {
+    throw new Cancel$1("canceled");
+  }
+}
+var dispatchRequest$1 = function dispatchRequest(config2) {
+  throwIfCancellationRequested(config2);
+  config2.headers = config2.headers || {};
+  config2.data = transformData2.call(config2, config2.data, config2.headers, config2.transformRequest);
+  config2.headers = utils$4.merge(config2.headers.common || {}, config2.headers[config2.method] || {}, config2.headers);
+  utils$4.forEach(["delete", "get", "head", "post", "put", "patch", "common"], function cleanHeaderConfig(method) {
+    delete config2.headers[method];
+  });
+  var adapter = config2.adapter || defaults$1.adapter;
+  return adapter(config2).then(function onAdapterResolution(response) {
+    throwIfCancellationRequested(config2);
+    response.data = transformData2.call(config2, response.data, response.headers, config2.transformResponse);
+    return response;
+  }, function onAdapterRejection(reason) {
+    if (!isCancel2(reason)) {
+      throwIfCancellationRequested(config2);
+      if (reason && reason.response) {
+        reason.response.data = transformData2.call(config2, reason.response.data, reason.response.headers, config2.transformResponse);
+      }
+    }
+    return Promise.reject(reason);
+  });
+};
+var utils$3 = utils$e;
+var mergeConfig$2 = function mergeConfig(config1, config2) {
+  config2 = config2 || {};
+  var config3 = {};
+  function getMergedValue(target, source2) {
+    if (utils$3.isPlainObject(target) && utils$3.isPlainObject(source2)) {
+      return utils$3.merge(target, source2);
+    } else if (utils$3.isPlainObject(source2)) {
+      return utils$3.merge({}, source2);
+    } else if (utils$3.isArray(source2)) {
+      return source2.slice();
+    }
+    return source2;
+  }
+  function mergeDeepProperties(prop) {
+    if (!utils$3.isUndefined(config2[prop])) {
+      return getMergedValue(config1[prop], config2[prop]);
+    } else if (!utils$3.isUndefined(config1[prop])) {
+      return getMergedValue(void 0, config1[prop]);
+    }
+  }
+  function valueFromConfig2(prop) {
+    if (!utils$3.isUndefined(config2[prop])) {
+      return getMergedValue(void 0, config2[prop]);
+    }
+  }
+  function defaultToConfig2(prop) {
+    if (!utils$3.isUndefined(config2[prop])) {
+      return getMergedValue(void 0, config2[prop]);
+    } else if (!utils$3.isUndefined(config1[prop])) {
+      return getMergedValue(void 0, config1[prop]);
+    }
+  }
+  function mergeDirectKeys(prop) {
+    if (prop in config2) {
+      return getMergedValue(config1[prop], config2[prop]);
+    } else if (prop in config1) {
+      return getMergedValue(void 0, config1[prop]);
+    }
+  }
+  var mergeMap = {
+    "url": valueFromConfig2,
+    "method": valueFromConfig2,
+    "data": valueFromConfig2,
+    "baseURL": defaultToConfig2,
+    "transformRequest": defaultToConfig2,
+    "transformResponse": defaultToConfig2,
+    "paramsSerializer": defaultToConfig2,
+    "timeout": defaultToConfig2,
+    "timeoutMessage": defaultToConfig2,
+    "withCredentials": defaultToConfig2,
+    "adapter": defaultToConfig2,
+    "responseType": defaultToConfig2,
+    "xsrfCookieName": defaultToConfig2,
+    "xsrfHeaderName": defaultToConfig2,
+    "onUploadProgress": defaultToConfig2,
+    "onDownloadProgress": defaultToConfig2,
+    "decompress": defaultToConfig2,
+    "maxContentLength": defaultToConfig2,
+    "maxBodyLength": defaultToConfig2,
+    "transport": defaultToConfig2,
+    "httpAgent": defaultToConfig2,
+    "httpsAgent": defaultToConfig2,
+    "cancelToken": defaultToConfig2,
+    "socketPath": defaultToConfig2,
+    "responseEncoding": defaultToConfig2,
+    "validateStatus": mergeDirectKeys
+  };
+  utils$3.forEach(Object.keys(config1).concat(Object.keys(config2)), function computeConfigValue(prop) {
+    var merge2 = mergeMap[prop] || mergeDeepProperties;
+    var configValue = merge2(prop);
+    utils$3.isUndefined(configValue) && merge2 !== mergeDirectKeys || (config3[prop] = configValue);
+  });
+  return config3;
+};
+var data = {
+  "version": "0.26.0"
+};
+var VERSION = data.version;
+var validators$1 = {};
+["object", "boolean", "number", "function", "string", "symbol"].forEach(function(type, i2) {
+  validators$1[type] = function validator2(thing) {
+    return typeof thing === type || "a" + (i2 < 1 ? "n " : " ") + type;
+  };
+});
+var deprecatedWarnings = {};
+validators$1.transitional = function transitional(validator2, version2, message) {
+  function formatMessage(opt, desc) {
+    return "[Axios v" + VERSION + "] Transitional option '" + opt + "'" + desc + (message ? ". " + message : "");
+  }
+  return function(value, opt, opts) {
+    if (validator2 === false) {
+      throw new Error(formatMessage(opt, " has been removed" + (version2 ? " in " + version2 : "")));
+    }
+    if (version2 && !deprecatedWarnings[opt]) {
+      deprecatedWarnings[opt] = true;
+      console.warn(formatMessage(opt, " has been deprecated since v" + version2 + " and will be removed in the near future"));
+    }
+    return validator2 ? validator2(value, opt, opts) : true;
+  };
+};
+function assertOptions(options, schema, allowUnknown) {
+  if (typeof options !== "object") {
+    throw new TypeError("options must be an object");
+  }
+  var keys = Object.keys(options);
+  var i2 = keys.length;
+  while (i2-- > 0) {
+    var opt = keys[i2];
+    var validator2 = schema[opt];
+    if (validator2) {
+      var value = options[opt];
+      var result = value === void 0 || validator2(value, opt, options);
+      if (result !== true) {
+        throw new TypeError("option " + opt + " must be " + result);
+      }
+      continue;
+    }
+    if (allowUnknown !== true) {
+      throw Error("Unknown option " + opt);
+    }
+  }
+}
+var validator$1 = {
+  assertOptions,
+  validators: validators$1
+};
+var utils$2 = utils$e;
+var buildURL2 = buildURL$2;
+var InterceptorManager = InterceptorManager_1;
+var dispatchRequest2 = dispatchRequest$1;
+var mergeConfig$1 = mergeConfig$2;
+var validator = validator$1;
+var validators = validator.validators;
+function Axios$1(instanceConfig) {
+  this.defaults = instanceConfig;
+  this.interceptors = {
+    request: new InterceptorManager(),
+    response: new InterceptorManager()
+  };
+}
+Axios$1.prototype.request = function request(configOrUrl, config2) {
+  if (typeof configOrUrl === "string") {
+    config2 = config2 || {};
+    config2.url = configOrUrl;
+  } else {
+    config2 = configOrUrl || {};
+  }
+  config2 = mergeConfig$1(this.defaults, config2);
+  if (config2.method) {
+    config2.method = config2.method.toLowerCase();
+  } else if (this.defaults.method) {
+    config2.method = this.defaults.method.toLowerCase();
+  } else {
+    config2.method = "get";
+  }
+  var transitional2 = config2.transitional;
+  if (transitional2 !== void 0) {
+    validator.assertOptions(transitional2, {
+      silentJSONParsing: validators.transitional(validators.boolean),
+      forcedJSONParsing: validators.transitional(validators.boolean),
+      clarifyTimeoutError: validators.transitional(validators.boolean)
+    }, false);
+  }
+  var requestInterceptorChain = [];
+  var synchronousRequestInterceptors = true;
+  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
+    if (typeof interceptor.runWhen === "function" && interceptor.runWhen(config2) === false) {
+      return;
+    }
+    synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
+    requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
+  });
+  var responseInterceptorChain = [];
+  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
+    responseInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
+  });
+  var promise;
+  if (!synchronousRequestInterceptors) {
+    var chain = [dispatchRequest2, void 0];
+    Array.prototype.unshift.apply(chain, requestInterceptorChain);
+    chain = chain.concat(responseInterceptorChain);
+    promise = Promise.resolve(config2);
+    while (chain.length) {
+      promise = promise.then(chain.shift(), chain.shift());
+    }
+    return promise;
+  }
+  var newConfig = config2;
+  while (requestInterceptorChain.length) {
+    var onFulfilled = requestInterceptorChain.shift();
+    var onRejected = requestInterceptorChain.shift();
+    try {
+      newConfig = onFulfilled(newConfig);
+    } catch (error) {
+      onRejected(error);
+      break;
+    }
+  }
+  try {
+    promise = dispatchRequest2(newConfig);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+  while (responseInterceptorChain.length) {
+    promise = promise.then(responseInterceptorChain.shift(), responseInterceptorChain.shift());
+  }
+  return promise;
+};
+Axios$1.prototype.getUri = function getUri(config2) {
+  config2 = mergeConfig$1(this.defaults, config2);
+  return buildURL2(config2.url, config2.params, config2.paramsSerializer).replace(/^\?/, "");
+};
+utils$2.forEach(["delete", "get", "head", "options"], function forEachMethodNoData2(method) {
+  Axios$1.prototype[method] = function(url, config2) {
+    return this.request(mergeConfig$1(config2 || {}, {
+      method,
+      url,
+      data: (config2 || {}).data
+    }));
+  };
+});
+utils$2.forEach(["post", "put", "patch"], function forEachMethodWithData2(method) {
+  Axios$1.prototype[method] = function(url, data2, config2) {
+    return this.request(mergeConfig$1(config2 || {}, {
+      method,
+      url,
+      data: data2
+    }));
+  };
+});
+var Axios_1 = Axios$1;
+var Cancel = Cancel_1;
+function CancelToken(executor) {
+  if (typeof executor !== "function") {
+    throw new TypeError("executor must be a function.");
+  }
+  var resolvePromise;
+  this.promise = new Promise(function promiseExecutor(resolve2) {
+    resolvePromise = resolve2;
+  });
+  var token2 = this;
+  this.promise.then(function(cancel) {
+    if (!token2._listeners)
+      return;
+    var i2;
+    var l2 = token2._listeners.length;
+    for (i2 = 0; i2 < l2; i2++) {
+      token2._listeners[i2](cancel);
+    }
+    token2._listeners = null;
+  });
+  this.promise.then = function(onfulfilled) {
+    var _resolve;
+    var promise = new Promise(function(resolve2) {
+      token2.subscribe(resolve2);
+      _resolve = resolve2;
+    }).then(onfulfilled);
+    promise.cancel = function reject() {
+      token2.unsubscribe(_resolve);
+    };
+    return promise;
+  };
+  executor(function cancel(message) {
+    if (token2.reason) {
+      return;
+    }
+    token2.reason = new Cancel(message);
+    resolvePromise(token2.reason);
+  });
+}
+CancelToken.prototype.throwIfRequested = function throwIfRequested() {
+  if (this.reason) {
+    throw this.reason;
+  }
+};
+CancelToken.prototype.subscribe = function subscribe(listener) {
+  if (this.reason) {
+    listener(this.reason);
+    return;
+  }
+  if (this._listeners) {
+    this._listeners.push(listener);
+  } else {
+    this._listeners = [listener];
+  }
+};
+CancelToken.prototype.unsubscribe = function unsubscribe(listener) {
+  if (!this._listeners) {
+    return;
+  }
+  var index2 = this._listeners.indexOf(listener);
+  if (index2 !== -1) {
+    this._listeners.splice(index2, 1);
+  }
+};
+CancelToken.source = function source() {
+  var cancel;
+  var token2 = new CancelToken(function executor(c2) {
+    cancel = c2;
+  });
+  return {
+    token: token2,
+    cancel
+  };
+};
+var CancelToken_1 = CancelToken;
+var spread = function spread2(callback) {
+  return function wrap(arr) {
+    return callback.apply(null, arr);
+  };
+};
+var utils$1 = utils$e;
+var isAxiosError = function isAxiosError2(payload) {
+  return utils$1.isObject(payload) && payload.isAxiosError === true;
+};
+var utils = utils$e;
+var bind$1 = bind$3;
+var Axios = Axios_1;
+var mergeConfig2 = mergeConfig$2;
+var defaults = defaults_1;
+function createInstance(defaultConfig) {
+  var context = new Axios(defaultConfig);
+  var instance = bind$1(Axios.prototype.request, context);
+  utils.extend(instance, Axios.prototype, context);
+  utils.extend(instance, context);
+  instance.create = function create2(instanceConfig) {
+    return createInstance(mergeConfig2(defaultConfig, instanceConfig));
+  };
+  return instance;
+}
+var axios$1 = createInstance(defaults);
+axios$1.Axios = Axios;
+axios$1.Cancel = Cancel_1;
+axios$1.CancelToken = CancelToken_1;
+axios$1.isCancel = isCancel$1;
+axios$1.VERSION = data.version;
+axios$1.all = function all(promises) {
+  return Promise.all(promises);
+};
+axios$1.spread = spread;
+axios$1.isAxiosError = isAxiosError;
+axios$2.exports = axios$1;
+axios$2.exports.default = axios$1;
+var axios = axios$2.exports;
+function getDevtoolsGlobalHook() {
+  return getTarget().__VUE_DEVTOOLS_GLOBAL_HOOK__;
+}
+function getTarget() {
+  return typeof navigator !== "undefined" && typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : {};
+}
+const isProxyAvailable = typeof Proxy === "function";
+const HOOK_SETUP = "devtools-plugin:setup";
+const HOOK_PLUGIN_SETTINGS_SET = "plugin:settings:set";
+class ApiProxy {
+  constructor(plugin, hook) {
+    this.target = null;
+    this.targetQueue = [];
+    this.onQueue = [];
+    this.plugin = plugin;
+    this.hook = hook;
+    const defaultSettings = {};
+    if (plugin.settings) {
+      for (const id2 in plugin.settings) {
+        const item = plugin.settings[id2];
+        defaultSettings[id2] = item.defaultValue;
+      }
+    }
+    const localSettingsSaveId = `__vue-devtools-plugin-settings__${plugin.id}`;
+    let currentSettings = Object.assign({}, defaultSettings);
+    try {
+      const raw = localStorage.getItem(localSettingsSaveId);
+      const data2 = JSON.parse(raw);
+      Object.assign(currentSettings, data2);
+    } catch (e2) {
+    }
+    this.fallbacks = {
+      getSettings() {
+        return currentSettings;
+      },
+      setSettings(value) {
+        try {
+          localStorage.setItem(localSettingsSaveId, JSON.stringify(value));
+        } catch (e2) {
+        }
+        currentSettings = value;
+      }
+    };
+    if (hook) {
+      hook.on(HOOK_PLUGIN_SETTINGS_SET, (pluginId, value) => {
+        if (pluginId === this.plugin.id) {
+          this.fallbacks.setSettings(value);
+        }
+      });
+    }
+    this.proxiedOn = new Proxy({}, {
+      get: (_target, prop) => {
+        if (this.target) {
+          return this.target.on[prop];
+        } else {
+          return (...args) => {
+            this.onQueue.push({
+              method: prop,
+              args
+            });
+          };
+        }
+      }
+    });
+    this.proxiedTarget = new Proxy({}, {
+      get: (_target, prop) => {
+        if (this.target) {
+          return this.target[prop];
+        } else if (prop === "on") {
+          return this.proxiedOn;
+        } else if (Object.keys(this.fallbacks).includes(prop)) {
+          return (...args) => {
+            this.targetQueue.push({
+              method: prop,
+              args,
+              resolve: () => {
+              }
+            });
+            return this.fallbacks[prop](...args);
+          };
+        } else {
+          return (...args) => {
+            return new Promise((resolve2) => {
+              this.targetQueue.push({
+                method: prop,
+                args,
+                resolve: resolve2
+              });
+            });
+          };
+        }
+      }
+    });
+  }
+  async setRealTarget(target) {
+    this.target = target;
+    for (const item of this.onQueue) {
+      this.target.on[item.method](...item.args);
+    }
+    for (const item of this.targetQueue) {
+      item.resolve(await this.target[item.method](...item.args));
+    }
+  }
+}
+function setupDevtoolsPlugin(pluginDescriptor, setupFn) {
+  const descriptor = pluginDescriptor;
+  const target = getTarget();
+  const hook = getDevtoolsGlobalHook();
+  const enableProxy = isProxyAvailable && descriptor.enableEarlyProxy;
+  if (hook && (target.__VUE_DEVTOOLS_PLUGIN_API_AVAILABLE__ || !enableProxy)) {
+    hook.emit(HOOK_SETUP, pluginDescriptor, setupFn);
+  } else {
+    const proxy = enableProxy ? new ApiProxy(descriptor, hook) : null;
+    const list = target.__VUE_DEVTOOLS_PLUGINS__ = target.__VUE_DEVTOOLS_PLUGINS__ || [];
+    list.push({
+      pluginDescriptor: descriptor,
+      setupFn,
+      proxy
+    });
+    if (proxy)
+      setupFn(proxy.proxiedTarget);
+  }
+}
+/*!
+ * vuex v4.0.2
+ * (c) 2021 Evan You
+ * @license MIT
+ */
+var storeKey = "store";
+function useStore(key2) {
+  if (key2 === void 0)
+    key2 = null;
+  return inject(key2 !== null ? key2 : storeKey);
+}
+function forEachValue(obj, fn) {
+  Object.keys(obj).forEach(function(key2) {
+    return fn(obj[key2], key2);
+  });
+}
+function isObject(obj) {
+  return obj !== null && typeof obj === "object";
+}
+function isPromise(val) {
+  return val && typeof val.then === "function";
+}
+function partial(fn, arg) {
+  return function() {
+    return fn(arg);
+  };
+}
+function genericSubscribe(fn, subs, options) {
+  if (subs.indexOf(fn) < 0) {
+    options && options.prepend ? subs.unshift(fn) : subs.push(fn);
+  }
+  return function() {
+    var i2 = subs.indexOf(fn);
+    if (i2 > -1) {
+      subs.splice(i2, 1);
+    }
+  };
+}
+function resetStore(store2, hot) {
+  store2._actions = /* @__PURE__ */ Object.create(null);
+  store2._mutations = /* @__PURE__ */ Object.create(null);
+  store2._wrappedGetters = /* @__PURE__ */ Object.create(null);
+  store2._modulesNamespaceMap = /* @__PURE__ */ Object.create(null);
+  var state2 = store2.state;
+  installModule(store2, state2, [], store2._modules.root, true);
+  resetStoreState(store2, state2, hot);
+}
+function resetStoreState(store2, state2, hot) {
+  var oldState = store2._state;
+  store2.getters = {};
+  store2._makeLocalGettersCache = /* @__PURE__ */ Object.create(null);
+  var wrappedGetters = store2._wrappedGetters;
+  var computedObj = {};
+  forEachValue(wrappedGetters, function(fn, key2) {
+    computedObj[key2] = partial(fn, store2);
+    Object.defineProperty(store2.getters, key2, {
+      get: function() {
+        return computedObj[key2]();
+      },
+      enumerable: true
+    });
+  });
+  store2._state = reactive({
+    data: state2
+  });
+  if (store2.strict) {
+    enableStrictMode(store2);
+  }
+  if (oldState) {
+    if (hot) {
+      store2._withCommit(function() {
+        oldState.data = null;
+      });
+    }
+  }
+}
+function installModule(store2, rootState, path, module, hot) {
+  var isRoot = !path.length;
+  var namespace = store2._modules.getNamespace(path);
+  if (module.namespaced) {
+    if (store2._modulesNamespaceMap[namespace] && false) {
+      console.error("[vuex] duplicate namespace " + namespace + " for the namespaced module " + path.join("/"));
+    }
+    store2._modulesNamespaceMap[namespace] = module;
+  }
+  if (!isRoot && !hot) {
+    var parentState = getNestedState(rootState, path.slice(0, -1));
+    var moduleName = path[path.length - 1];
+    store2._withCommit(function() {
+      parentState[moduleName] = module.state;
+    });
+  }
+  var local = module.context = makeLocalContext(store2, namespace, path);
+  module.forEachMutation(function(mutation, key2) {
+    var namespacedType = namespace + key2;
+    registerMutation(store2, namespacedType, mutation, local);
+  });
+  module.forEachAction(function(action, key2) {
+    var type = action.root ? key2 : namespace + key2;
+    var handler = action.handler || action;
+    registerAction(store2, type, handler, local);
+  });
+  module.forEachGetter(function(getter, key2) {
+    var namespacedType = namespace + key2;
+    registerGetter(store2, namespacedType, getter, local);
+  });
+  module.forEachChild(function(child, key2) {
+    installModule(store2, rootState, path.concat(key2), child, hot);
+  });
+}
+function makeLocalContext(store2, namespace, path) {
+  var noNamespace = namespace === "";
+  var local = {
+    dispatch: noNamespace ? store2.dispatch : function(_type, _payload, _options) {
+      var args = unifyObjectStyle(_type, _payload, _options);
+      var payload = args.payload;
+      var options = args.options;
+      var type = args.type;
+      if (!options || !options.root) {
+        type = namespace + type;
+      }
+      return store2.dispatch(type, payload);
+    },
+    commit: noNamespace ? store2.commit : function(_type, _payload, _options) {
+      var args = unifyObjectStyle(_type, _payload, _options);
+      var payload = args.payload;
+      var options = args.options;
+      var type = args.type;
+      if (!options || !options.root) {
+        type = namespace + type;
+      }
+      store2.commit(type, payload, options);
+    }
+  };
+  Object.defineProperties(local, {
+    getters: {
+      get: noNamespace ? function() {
+        return store2.getters;
+      } : function() {
+        return makeLocalGetters(store2, namespace);
+      }
+    },
+    state: {
+      get: function() {
+        return getNestedState(store2.state, path);
+      }
+    }
+  });
+  return local;
+}
+function makeLocalGetters(store2, namespace) {
+  if (!store2._makeLocalGettersCache[namespace]) {
+    var gettersProxy = {};
+    var splitPos = namespace.length;
+    Object.keys(store2.getters).forEach(function(type) {
+      if (type.slice(0, splitPos) !== namespace) {
+        return;
+      }
+      var localType = type.slice(splitPos);
+      Object.defineProperty(gettersProxy, localType, {
+        get: function() {
+          return store2.getters[type];
+        },
+        enumerable: true
+      });
+    });
+    store2._makeLocalGettersCache[namespace] = gettersProxy;
+  }
+  return store2._makeLocalGettersCache[namespace];
+}
+function registerMutation(store2, type, handler, local) {
+  var entry = store2._mutations[type] || (store2._mutations[type] = []);
+  entry.push(function wrappedMutationHandler(payload) {
+    handler.call(store2, local.state, payload);
+  });
+}
+function registerAction(store2, type, handler, local) {
+  var entry = store2._actions[type] || (store2._actions[type] = []);
+  entry.push(function wrappedActionHandler(payload) {
+    var res = handler.call(store2, {
+      dispatch: local.dispatch,
+      commit: local.commit,
+      getters: local.getters,
+      state: local.state,
+      rootGetters: store2.getters,
+      rootState: store2.state
+    }, payload);
+    if (!isPromise(res)) {
+      res = Promise.resolve(res);
+    }
+    if (store2._devtoolHook) {
+      return res.catch(function(err) {
+        store2._devtoolHook.emit("vuex:error", err);
+        throw err;
+      });
+    } else {
+      return res;
+    }
+  });
+}
+function registerGetter(store2, type, rawGetter, local) {
+  if (store2._wrappedGetters[type]) {
+    return;
+  }
+  store2._wrappedGetters[type] = function wrappedGetter(store3) {
+    return rawGetter(local.state, local.getters, store3.state, store3.getters);
+  };
+}
+function enableStrictMode(store2) {
+  watch(function() {
+    return store2._state.data;
+  }, function() {
+  }, { deep: true, flush: "sync" });
+}
+function getNestedState(state2, path) {
+  return path.reduce(function(state3, key2) {
+    return state3[key2];
+  }, state2);
+}
+function unifyObjectStyle(type, payload, options) {
+  if (isObject(type) && type.type) {
+    options = payload;
+    payload = type;
+    type = type.type;
+  }
+  return { type, payload, options };
+}
+var LABEL_VUEX_BINDINGS = "vuex bindings";
+var MUTATIONS_LAYER_ID = "vuex:mutations";
+var ACTIONS_LAYER_ID = "vuex:actions";
+var INSPECTOR_ID = "vuex";
+var actionId = 0;
+function addDevtools(app, store2) {
+  setupDevtoolsPlugin({
+    id: "org.vuejs.vuex",
+    app,
+    label: "Vuex",
+    homepage: "https://next.vuex.vuejs.org/",
+    logo: "https://vuejs.org/images/icons/favicon-96x96.png",
+    packageName: "vuex",
+    componentStateTypes: [LABEL_VUEX_BINDINGS]
+  }, function(api) {
+    api.addTimelineLayer({
+      id: MUTATIONS_LAYER_ID,
+      label: "Vuex Mutations",
+      color: COLOR_LIME_500
+    });
+    api.addTimelineLayer({
+      id: ACTIONS_LAYER_ID,
+      label: "Vuex Actions",
+      color: COLOR_LIME_500
+    });
+    api.addInspector({
+      id: INSPECTOR_ID,
+      label: "Vuex",
+      icon: "storage",
+      treeFilterPlaceholder: "Filter stores..."
+    });
+    api.on.getInspectorTree(function(payload) {
+      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
+        if (payload.filter) {
+          var nodes = [];
+          flattenStoreForInspectorTree(nodes, store2._modules.root, payload.filter, "");
+          payload.rootNodes = nodes;
+        } else {
+          payload.rootNodes = [
+            formatStoreForInspectorTree(store2._modules.root, "")
+          ];
+        }
+      }
+    });
+    api.on.getInspectorState(function(payload) {
+      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
+        var modulePath = payload.nodeId;
+        makeLocalGetters(store2, modulePath);
+        payload.state = formatStoreForInspectorState(getStoreModule(store2._modules, modulePath), modulePath === "root" ? store2.getters : store2._makeLocalGettersCache, modulePath);
+      }
+    });
+    api.on.editInspectorState(function(payload) {
+      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
+        var modulePath = payload.nodeId;
+        var path = payload.path;
+        if (modulePath !== "root") {
+          path = modulePath.split("/").filter(Boolean).concat(path);
+        }
+        store2._withCommit(function() {
+          payload.set(store2._state.data, path, payload.state.value);
+        });
+      }
+    });
+    store2.subscribe(function(mutation, state2) {
+      var data2 = {};
+      if (mutation.payload) {
+        data2.payload = mutation.payload;
+      }
+      data2.state = state2;
+      api.notifyComponentUpdate();
+      api.sendInspectorTree(INSPECTOR_ID);
+      api.sendInspectorState(INSPECTOR_ID);
+      api.addTimelineEvent({
+        layerId: MUTATIONS_LAYER_ID,
+        event: {
+          time: Date.now(),
+          title: mutation.type,
+          data: data2
+        }
+      });
+    });
+    store2.subscribeAction({
+      before: function(action, state2) {
+        var data2 = {};
+        if (action.payload) {
+          data2.payload = action.payload;
+        }
+        action._id = actionId++;
+        action._time = Date.now();
+        data2.state = state2;
+        api.addTimelineEvent({
+          layerId: ACTIONS_LAYER_ID,
+          event: {
+            time: action._time,
+            title: action.type,
+            groupId: action._id,
+            subtitle: "start",
+            data: data2
+          }
+        });
+      },
+      after: function(action, state2) {
+        var data2 = {};
+        var duration = Date.now() - action._time;
+        data2.duration = {
+          _custom: {
+            type: "duration",
+            display: duration + "ms",
+            tooltip: "Action duration",
+            value: duration
+          }
+        };
+        if (action.payload) {
+          data2.payload = action.payload;
+        }
+        data2.state = state2;
+        api.addTimelineEvent({
+          layerId: ACTIONS_LAYER_ID,
+          event: {
+            time: Date.now(),
+            title: action.type,
+            groupId: action._id,
+            subtitle: "end",
+            data: data2
+          }
+        });
+      }
+    });
+  });
+}
+var COLOR_LIME_500 = 8702998;
+var COLOR_DARK = 6710886;
+var COLOR_WHITE = 16777215;
+var TAG_NAMESPACED = {
+  label: "namespaced",
+  textColor: COLOR_WHITE,
+  backgroundColor: COLOR_DARK
+};
+function extractNameFromPath(path) {
+  return path && path !== "root" ? path.split("/").slice(-2, -1)[0] : "Root";
+}
+function formatStoreForInspectorTree(module, path) {
+  return {
+    id: path || "root",
+    label: extractNameFromPath(path),
+    tags: module.namespaced ? [TAG_NAMESPACED] : [],
+    children: Object.keys(module._children).map(function(moduleName) {
+      return formatStoreForInspectorTree(module._children[moduleName], path + moduleName + "/");
+    })
+  };
+}
+function flattenStoreForInspectorTree(result, module, filter, path) {
+  if (path.includes(filter)) {
+    result.push({
+      id: path || "root",
+      label: path.endsWith("/") ? path.slice(0, path.length - 1) : path || "Root",
+      tags: module.namespaced ? [TAG_NAMESPACED] : []
+    });
+  }
+  Object.keys(module._children).forEach(function(moduleName) {
+    flattenStoreForInspectorTree(result, module._children[moduleName], filter, path + moduleName + "/");
+  });
+}
+function formatStoreForInspectorState(module, getters2, path) {
+  getters2 = path === "root" ? getters2 : getters2[path];
+  var gettersKeys = Object.keys(getters2);
+  var storeState = {
+    state: Object.keys(module.state).map(function(key2) {
+      return {
+        key: key2,
+        editable: true,
+        value: module.state[key2]
+      };
+    })
+  };
+  if (gettersKeys.length) {
+    var tree = transformPathsToObjectTree(getters2);
+    storeState.getters = Object.keys(tree).map(function(key2) {
+      return {
+        key: key2.endsWith("/") ? extractNameFromPath(key2) : key2,
+        editable: false,
+        value: canThrow(function() {
+          return tree[key2];
+        })
+      };
+    });
+  }
+  return storeState;
+}
+function transformPathsToObjectTree(getters2) {
+  var result = {};
+  Object.keys(getters2).forEach(function(key2) {
+    var path = key2.split("/");
+    if (path.length > 1) {
+      var target = result;
+      var leafKey = path.pop();
+      path.forEach(function(p2) {
+        if (!target[p2]) {
+          target[p2] = {
+            _custom: {
+              value: {},
+              display: p2,
+              tooltip: "Module",
+              abstract: true
+            }
+          };
+        }
+        target = target[p2]._custom.value;
+      });
+      target[leafKey] = canThrow(function() {
+        return getters2[key2];
+      });
+    } else {
+      result[key2] = canThrow(function() {
+        return getters2[key2];
+      });
+    }
+  });
+  return result;
+}
+function getStoreModule(moduleMap, path) {
+  var names2 = path.split("/").filter(function(n2) {
+    return n2;
+  });
+  return names2.reduce(function(module, moduleName, i2) {
+    var child = module[moduleName];
+    if (!child) {
+      throw new Error('Missing module "' + moduleName + '" for path "' + path + '".');
+    }
+    return i2 === names2.length - 1 ? child : child._children;
+  }, path === "root" ? moduleMap : moduleMap.root._children);
+}
+function canThrow(cb) {
+  try {
+    return cb();
+  } catch (e2) {
+    return e2;
+  }
+}
+var Module = function Module2(rawModule, runtime) {
+  this.runtime = runtime;
+  this._children = /* @__PURE__ */ Object.create(null);
+  this._rawModule = rawModule;
+  var rawState = rawModule.state;
+  this.state = (typeof rawState === "function" ? rawState() : rawState) || {};
+};
+var prototypeAccessors$1 = { namespaced: { configurable: true } };
+prototypeAccessors$1.namespaced.get = function() {
+  return !!this._rawModule.namespaced;
+};
+Module.prototype.addChild = function addChild(key2, module) {
+  this._children[key2] = module;
+};
+Module.prototype.removeChild = function removeChild(key2) {
+  delete this._children[key2];
+};
+Module.prototype.getChild = function getChild(key2) {
+  return this._children[key2];
+};
+Module.prototype.hasChild = function hasChild(key2) {
+  return key2 in this._children;
+};
+Module.prototype.update = function update5(rawModule) {
+  this._rawModule.namespaced = rawModule.namespaced;
+  if (rawModule.actions) {
+    this._rawModule.actions = rawModule.actions;
+  }
+  if (rawModule.mutations) {
+    this._rawModule.mutations = rawModule.mutations;
+  }
+  if (rawModule.getters) {
+    this._rawModule.getters = rawModule.getters;
+  }
+};
+Module.prototype.forEachChild = function forEachChild(fn) {
+  forEachValue(this._children, fn);
+};
+Module.prototype.forEachGetter = function forEachGetter(fn) {
+  if (this._rawModule.getters) {
+    forEachValue(this._rawModule.getters, fn);
+  }
+};
+Module.prototype.forEachAction = function forEachAction(fn) {
+  if (this._rawModule.actions) {
+    forEachValue(this._rawModule.actions, fn);
+  }
+};
+Module.prototype.forEachMutation = function forEachMutation(fn) {
+  if (this._rawModule.mutations) {
+    forEachValue(this._rawModule.mutations, fn);
+  }
+};
+Object.defineProperties(Module.prototype, prototypeAccessors$1);
+var ModuleCollection = function ModuleCollection2(rawRootModule) {
+  this.register([], rawRootModule, false);
+};
+ModuleCollection.prototype.get = function get2(path) {
+  return path.reduce(function(module, key2) {
+    return module.getChild(key2);
+  }, this.root);
+};
+ModuleCollection.prototype.getNamespace = function getNamespace(path) {
+  var module = this.root;
+  return path.reduce(function(namespace, key2) {
+    module = module.getChild(key2);
+    return namespace + (module.namespaced ? key2 + "/" : "");
+  }, "");
+};
+ModuleCollection.prototype.update = function update$1(rawRootModule) {
+  update6([], this.root, rawRootModule);
+};
+ModuleCollection.prototype.register = function register(path, rawModule, runtime) {
+  var this$1$1 = this;
+  if (runtime === void 0)
+    runtime = true;
+  var newModule = new Module(rawModule, runtime);
+  if (path.length === 0) {
+    this.root = newModule;
+  } else {
+    var parent = this.get(path.slice(0, -1));
+    parent.addChild(path[path.length - 1], newModule);
+  }
+  if (rawModule.modules) {
+    forEachValue(rawModule.modules, function(rawChildModule, key2) {
+      this$1$1.register(path.concat(key2), rawChildModule, runtime);
+    });
+  }
+};
+ModuleCollection.prototype.unregister = function unregister(path) {
+  var parent = this.get(path.slice(0, -1));
+  var key2 = path[path.length - 1];
+  var child = parent.getChild(key2);
+  if (!child) {
+    return;
+  }
+  if (!child.runtime) {
+    return;
+  }
+  parent.removeChild(key2);
+};
+ModuleCollection.prototype.isRegistered = function isRegistered(path) {
+  var parent = this.get(path.slice(0, -1));
+  var key2 = path[path.length - 1];
+  if (parent) {
+    return parent.hasChild(key2);
+  }
+  return false;
+};
+function update6(path, targetModule, newModule) {
+  targetModule.update(newModule);
+  if (newModule.modules) {
+    for (var key2 in newModule.modules) {
+      if (!targetModule.getChild(key2)) {
+        return;
+      }
+      update6(path.concat(key2), targetModule.getChild(key2), newModule.modules[key2]);
+    }
+  }
+}
+function createStore(options) {
+  return new Store(options);
+}
+var Store = function Store2(options) {
+  var this$1$1 = this;
+  if (options === void 0)
+    options = {};
+  var plugins = options.plugins;
+  if (plugins === void 0)
+    plugins = [];
+  var strict = options.strict;
+  if (strict === void 0)
+    strict = false;
+  var devtools = options.devtools;
+  this._committing = false;
+  this._actions = /* @__PURE__ */ Object.create(null);
+  this._actionSubscribers = [];
+  this._mutations = /* @__PURE__ */ Object.create(null);
+  this._wrappedGetters = /* @__PURE__ */ Object.create(null);
+  this._modules = new ModuleCollection(options);
+  this._modulesNamespaceMap = /* @__PURE__ */ Object.create(null);
+  this._subscribers = [];
+  this._makeLocalGettersCache = /* @__PURE__ */ Object.create(null);
+  this._devtools = devtools;
+  var store2 = this;
+  var ref2 = this;
+  var dispatch2 = ref2.dispatch;
+  var commit2 = ref2.commit;
+  this.dispatch = function boundDispatch(type, payload) {
+    return dispatch2.call(store2, type, payload);
+  };
+  this.commit = function boundCommit(type, payload, options2) {
+    return commit2.call(store2, type, payload, options2);
+  };
+  this.strict = strict;
+  var state2 = this._modules.root.state;
+  installModule(this, state2, [], this._modules.root);
+  resetStoreState(this, state2);
+  plugins.forEach(function(plugin) {
+    return plugin(this$1$1);
+  });
+};
+var prototypeAccessors = { state: { configurable: true } };
+Store.prototype.install = function install(app, injectKey) {
+  app.provide(injectKey || storeKey, this);
+  app.config.globalProperties.$store = this;
+  var useDevtools = this._devtools !== void 0 ? this._devtools : false;
+  if (useDevtools) {
+    addDevtools(app, this);
+  }
+};
+prototypeAccessors.state.get = function() {
+  return this._state.data;
+};
+prototypeAccessors.state.set = function(v2) {
+};
+Store.prototype.commit = function commit(_type, _payload, _options) {
+  var this$1$1 = this;
+  var ref2 = unifyObjectStyle(_type, _payload, _options);
+  var type = ref2.type;
+  var payload = ref2.payload;
+  var mutation = { type, payload };
+  var entry = this._mutations[type];
+  if (!entry) {
+    return;
+  }
+  this._withCommit(function() {
+    entry.forEach(function commitIterator(handler) {
+      handler(payload);
+    });
+  });
+  this._subscribers.slice().forEach(function(sub) {
+    return sub(mutation, this$1$1.state);
+  });
+};
+Store.prototype.dispatch = function dispatch(_type, _payload) {
+  var this$1$1 = this;
+  var ref2 = unifyObjectStyle(_type, _payload);
+  var type = ref2.type;
+  var payload = ref2.payload;
+  var action = { type, payload };
+  var entry = this._actions[type];
+  if (!entry) {
+    return;
+  }
+  try {
+    this._actionSubscribers.slice().filter(function(sub) {
+      return sub.before;
+    }).forEach(function(sub) {
+      return sub.before(action, this$1$1.state);
+    });
+  } catch (e2) {
+  }
+  var result = entry.length > 1 ? Promise.all(entry.map(function(handler) {
+    return handler(payload);
+  })) : entry[0](payload);
+  return new Promise(function(resolve2, reject) {
+    result.then(function(res) {
+      try {
+        this$1$1._actionSubscribers.filter(function(sub) {
+          return sub.after;
+        }).forEach(function(sub) {
+          return sub.after(action, this$1$1.state);
+        });
+      } catch (e2) {
+      }
+      resolve2(res);
+    }, function(error) {
+      try {
+        this$1$1._actionSubscribers.filter(function(sub) {
+          return sub.error;
+        }).forEach(function(sub) {
+          return sub.error(action, this$1$1.state, error);
+        });
+      } catch (e2) {
+      }
+      reject(error);
+    });
+  });
+};
+Store.prototype.subscribe = function subscribe2(fn, options) {
+  return genericSubscribe(fn, this._subscribers, options);
+};
+Store.prototype.subscribeAction = function subscribeAction(fn, options) {
+  var subs = typeof fn === "function" ? { before: fn } : fn;
+  return genericSubscribe(subs, this._actionSubscribers, options);
+};
+Store.prototype.watch = function watch$1(getter, cb, options) {
+  var this$1$1 = this;
+  return watch(function() {
+    return getter(this$1$1.state, this$1$1.getters);
+  }, cb, Object.assign({}, options));
+};
+Store.prototype.replaceState = function replaceState(state2) {
+  var this$1$1 = this;
+  this._withCommit(function() {
+    this$1$1._state.data = state2;
+  });
+};
+Store.prototype.registerModule = function registerModule(path, rawModule, options) {
+  if (options === void 0)
+    options = {};
+  if (typeof path === "string") {
+    path = [path];
+  }
+  this._modules.register(path, rawModule);
+  installModule(this, this.state, path, this._modules.get(path), options.preserveState);
+  resetStoreState(this, this.state);
+};
+Store.prototype.unregisterModule = function unregisterModule(path) {
+  var this$1$1 = this;
+  if (typeof path === "string") {
+    path = [path];
+  }
+  this._modules.unregister(path);
+  this._withCommit(function() {
+    var parentState = getNestedState(this$1$1.state, path.slice(0, -1));
+    delete parentState[path[path.length - 1]];
+  });
+  resetStore(this);
+};
+Store.prototype.hasModule = function hasModule(path) {
+  if (typeof path === "string") {
+    path = [path];
+  }
+  return this._modules.isRegistered(path);
+};
+Store.prototype.hotUpdate = function hotUpdate(newOptions) {
+  this._modules.update(newOptions);
+  resetStore(this, true);
+};
+Store.prototype._withCommit = function _withCommit(fn) {
+  var committing = this._committing;
+  this._committing = true;
+  fn();
+  this._committing = committing;
+};
+Object.defineProperties(Store.prototype, prototypeAccessors);
+const state = () => {
+  return {
+    open: false,
+    apiKey: null,
+    view: "LOADING",
+    supportedChains: [],
+    app: {
+      id: null,
+      name: null,
+      attributionRequired: true
+    },
+    request: null,
+    response: null,
+    contractMetadata: null,
+    wallets: [],
+    provider: null,
+    error: {
+      code: null,
+      message: null,
+      fields: null,
+      requestId: null
+    }
+  };
+};
+const getters = {
+  open: (state2) => state2.open,
+  apiKey: (state2) => state2.apiKey,
+  view: (state2) => state2.view,
+  app: (state2) => state2.app,
+  contract: (state2) => state2.contract,
+  contractMetadata: (state2) => state2.contractMetadata,
+  provider: (state2) => state2.provider,
+  attempt: (state2) => state2.attempt,
+  error: (state2) => state2.error,
+  walletHmac: (state2) => ({ chain, address }) => {
+    return state2.wallets.filter((wallet) => {
+      if (wallet.hmac.includes(":")) {
+        const [exp2, hmac3] = wallet.hmac.split(":");
+        return exp2 > Math.floor(Date.now() / 1e3);
+      }
+      return true;
+    }).find((wallet) => {
+      return wallet.chain === chain && wallet.address === address;
+    });
+  },
+  contractLink: ({ contractMetadata: contractMetadata2 }) => {
+    var _a;
+    if ((_a = contractMetadata2.listing) == null ? void 0 : _a.url) {
+      return contractMetadata2.listing.url;
+    }
+    const link = contractMetadata2.socials.find(({ type }) => type === "WEB");
+    if (link)
+      return link.url;
+  },
+  request: (state2) => state2.request,
+  response: (state2) => state2.response
+};
+const actions = {
+  initialize({ commit: commit2 }, { apiKey, providers }) {
+    const supportedChains = providers.map((provider) => provider.supportedChains).flat().filter(function(item, pos, self2) {
+      return self2.indexOf(item) === pos;
+    });
+    commit2("SET_API_KEY", apiKey);
+    commit2("SET_SUPPORTED_CHAINS", supportedChains);
+  },
+  reset({ commit: commit2 }) {
+    commit2("SET_RESPONSE", null);
+    commit2("SET_VIEW", "START");
+  },
+  handleError({ commit: commit2 }, err) {
+    commit2("SET_VIEW", "ERROR");
+    switch (err.name) {
+      case "BadRequestError":
+        commit2("SET_ERROR", {
+          code: "BAD_REQUEST",
+          message: err.message,
+          fields: err.fields,
+          requestId: err.requestId
+        });
+        break;
+      case "InvalidCredentialsError":
+        commit2("SET_ERROR", {
+          code: "BAD_CREDENTIALS",
+          message: err.message,
+          requestId: err.requestId
+        });
+        break;
+      case "InternalServerError":
+        commit2("SET_ERROR", {
+          code: "SERVER_ERROR",
+          message: err.message,
+          requestId: err.requestId
+        });
+        break;
+      case "RateLimitedError":
+        commit2("SET_ERROR", {
+          code: "SERVER_ERROR",
+          message: err.message,
+          requestId: err.requestId
+        });
+        commit2("SET_VIEW", "RATE_LIMITED");
+        break;
+      case "NetworkError":
+        commit2("SET_ERROR", { code: "NETWORK" });
+        break;
+      case "UserRejectedRequestError":
+        commit2("SET_ERROR", { code: "CONNECTION_DENIED" });
+        break;
+      case "UnsupportedChainError":
+        commit2("SET_ERROR", { code: "CHAIN_INVALID" });
+        break;
+      default:
+        commit2("SET_ERROR", { code: "UNKNOWN", message: err.message });
+        break;
+    }
+  },
+  async startRequest({ commit: commit2, dispatch: dispatch2 }, config2) {
+    var _a, _b;
+    commit2("SET_REQUEST", config2);
+    commit2("SET_RESPONSE", null);
+    await dispatch2("getContractMetadata", {
+      chain: config2.chain,
+      network: config2.network,
+      contract: config2.contract,
+      marketplace: config2.marketplace,
+      externalImages: {
+        avatarImage: (_a = config2.metadata) == null ? void 0 : _a.avatarImage,
+        bannerImage: (_b = config2.metadata) == null ? void 0 : _b.bannerImage
+      }
+    });
+  },
+  async getContractMetadata({ commit: commit2, dispatch: dispatch2, getters: getters2 }, config2) {
+    try {
+      const { data: _metadata } = await contractMetadata(config2);
+      const metadata = __spreadValues({}, _metadata);
+      if (getters2.request.metadata) {
+        const { name, socials } = getters2.request.metadata;
+        metadata.name = name || metadata.name;
+        metadata.socials = socials || metadata.socials;
+      }
+      commit2("SET_VIEW", "START");
+      commit2("METADATA_LOADED", metadata);
+    } catch (err) {
+      return dispatch2("handleError", err);
+    }
+  },
+  async connectWallet({ commit: commit2, dispatch: dispatch2, getters: getters2 }, walletName) {
+    const { chain, network } = getters2.request;
+    commit2("SET_VIEW", "CONNECTING");
+    try {
+      Wallet$1.setActive(walletName);
+      await Wallet$1.connect(chain, network);
+      commit2("WALLET_CONNECTED");
+    } catch (err) {
+      return dispatch2("handleError", err);
+    }
+    const address = await Wallet$1.getAddress();
+    const cachedResult = getters2.walletHmac({ chain, address });
+    if (cachedResult) {
+      commit2("NONCE_VERIFIED", cachedResult);
+      return cachedResult;
+    }
+    const { data: data2 } = await createNonce({ chain, address });
+    commit2("SET_VIEW", "SIGNING");
+    let signature2;
+    try {
+      signature2 = await Wallet$1.sign(data2.nonce);
+    } catch (err) {
+      dispatch2("handleError", err);
+      return;
+    }
+    await dispatch2("verifyNonce", { nonce: data2.nonce, signature: signature2 });
+  },
+  async verifyNonce({ commit: commit2, dispatch: dispatch2 }, { nonce, signature: signature2 }) {
+    try {
+      const { data: nonceResult } = await verifyNonce({ nonce, signature: signature2 });
+      commit2("NONCE_VERIFIED", nonceResult);
+      return nonceResult;
+    } catch (err) {
+      dispatch2("handleError", err);
+    }
+  },
+  async verifyNft({ commit: commit2, dispatch: dispatch2, getters: getters2 }, wallet) {
+    commit2("SET_VIEW", "VERIFYING");
+    try {
+      const { data: attempt } = await verifyNFT(__spreadProps(__spreadValues({}, getters2.request), {
+        wallet: {
+          address: wallet.address,
+          hmac: wallet.hmac
+        }
+      }));
+      commit2("SET_VIEW", attempt.result.ownership ? "SUCCESS" : "FAILED");
+      commit2("SET_RESPONSE", attempt);
+      return attempt;
+    } catch (err) {
+      dispatch2("handleError", err);
+    }
+  }
+};
+const mutations = {
+  SET_API_KEY(state2, apiKey) {
+    state2.apiKey = apiKey;
+  },
+  SET_SUPPORTED_CHAINS(state2, chains2) {
+    state2.supportedChains = chains2;
+  },
+  SET_VIEW(state2, view) {
+    state2.view = view;
+  },
+  SET_ERROR(state2, { code: code2, message, fields, requestId }) {
+    state2.error = { code: code2, message, fields, requestId };
+  },
+  SET_REQUEST(state2, request2) {
+    state2.request = request2;
+  },
+  SET_RESPONSE(state2, response) {
+    state2.response = response;
+  },
+  SHOW_MODAL(state2) {
+    state2.attempt = null;
+    state2.error = null;
+    state2.open = true;
+  },
+  CLOSE_MODAL(state2) {
+    state2.open = false;
+  },
+  METADATA_LOADED(state2, _a) {
+    var _b = _a, { app } = _b, metadata = __objRest(_b, ["app"]);
+    state2.app = app;
+    state2.contractMetadata = metadata;
+  },
+  WALLET_CONNECTED(state2, provider) {
+    state2.provider = provider;
+  },
+  NONCE_VERIFIED(state2, result) {
+    const idx = state2.wallets.findIndex(({ address, chain }) => address === result.address && chain === result.chain);
+    if (idx === -1) {
+      state2.wallets.push(result);
+    } else {
+      state2.wallets[idx] = result;
+    }
+  }
+};
+const store = createStore({
+  state,
+  getters,
+  actions,
+  mutations
+});
+let client;
+const setupClient = (endpoint = "https://dmnd.network/verify/v1") => {
+  client = axios.create({ baseURL: endpoint });
+  client.interceptors.request.use((request2) => {
+    request2.headers["X-Api-Key"] = store.getters.apiKey;
+    return request2;
+  }, function(err) {
+    return Promise.reject(err);
+  });
+  client.interceptors.response.use((response) => response, (err) => {
+    var _a;
+    if (err.message === "Network Error") {
+      return Promise.reject(new NetworkError());
+    }
+    switch ((_a = err.response) == null ? void 0 : _a.status) {
+      case 400:
+        return Promise.reject(new BadRequestError(err.response.data));
+      case 401:
+        return Promise.reject(new InvalidCredentialsError(err.response.data));
+      case 429:
+        return Promise.reject(new RateLimitedError(err.response.data));
+      case 500:
+        return Promise.reject(new InternalServerError(err.response.data));
+      default:
+        return Promise.reject(new InternalServerError(err.response.data));
+    }
+  });
+};
+const contractMetadata = async (_c) => {
+  var _d = _c, { chain, network, contract } = _d, additionalArgs = __objRest(_d, ["chain", "network", "contract"]);
+  return client.post("/contract/info", __spreadValues({
+    chain,
+    network,
+    contract
+  }, additionalArgs));
+};
+const createNonce = async ({ chain, address }) => {
+  return client.post("/address/nonce", {
+    chain,
+    address
+  });
+};
+const verifyNonce = async ({ nonce, signature: signature2 }) => {
+  return client.post("/address/verify", {
+    nonce,
+    signature: signature2
+  });
+};
+const verifyNFT = async (_e) => {
+  var _f = _e, { chain, network, contract, unlockables, wallet, user } = _f, additionalArgs = __objRest(_f, ["chain", "network", "contract", "unlockables", "wallet", "user"]);
+  return client.post("/asset/nft", __spreadValues({
+    chain,
+    network,
+    contract,
+    unlockables,
+    wallet,
+    user
+  }, additionalArgs));
+};
 function getBasePlacement(placement) {
   return placement.split("-")[0];
 }
@@ -33793,7 +36032,7 @@ function destroyTooltip(el) {
     el.classList.remove(TARGET_CLASS);
   }
 }
-function bind$3(el, { value, oldValue, modifiers }) {
+function bind2(el, { value, oldValue, modifiers }) {
   const options2 = getOptions(el, value, modifiers);
   if (!options2.content || getDefaultConfig(options2.theme || "tooltip", "disabled")) {
     destroyTooltip(el);
@@ -33812,2252 +36051,13 @@ function bind$3(el, { value, oldValue, modifiers }) {
   }
 }
 var PrivateVTooltip = {
-  beforeMount: bind$3,
-  updated: bind$3,
+  beforeMount: bind2,
+  updated: bind2,
   beforeUnmount(el) {
     destroyTooltip(el);
   }
 };
 const VTooltip = PrivateVTooltip;
-function getDevtoolsGlobalHook() {
-  return getTarget().__VUE_DEVTOOLS_GLOBAL_HOOK__;
-}
-function getTarget() {
-  return typeof navigator !== "undefined" && typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : {};
-}
-const isProxyAvailable = typeof Proxy === "function";
-const HOOK_SETUP = "devtools-plugin:setup";
-const HOOK_PLUGIN_SETTINGS_SET = "plugin:settings:set";
-class ApiProxy {
-  constructor(plugin, hook) {
-    this.target = null;
-    this.targetQueue = [];
-    this.onQueue = [];
-    this.plugin = plugin;
-    this.hook = hook;
-    const defaultSettings = {};
-    if (plugin.settings) {
-      for (const id2 in plugin.settings) {
-        const item = plugin.settings[id2];
-        defaultSettings[id2] = item.defaultValue;
-      }
-    }
-    const localSettingsSaveId = `__vue-devtools-plugin-settings__${plugin.id}`;
-    let currentSettings = Object.assign({}, defaultSettings);
-    try {
-      const raw = localStorage.getItem(localSettingsSaveId);
-      const data2 = JSON.parse(raw);
-      Object.assign(currentSettings, data2);
-    } catch (e2) {
-    }
-    this.fallbacks = {
-      getSettings() {
-        return currentSettings;
-      },
-      setSettings(value) {
-        try {
-          localStorage.setItem(localSettingsSaveId, JSON.stringify(value));
-        } catch (e2) {
-        }
-        currentSettings = value;
-      }
-    };
-    if (hook) {
-      hook.on(HOOK_PLUGIN_SETTINGS_SET, (pluginId, value) => {
-        if (pluginId === this.plugin.id) {
-          this.fallbacks.setSettings(value);
-        }
-      });
-    }
-    this.proxiedOn = new Proxy({}, {
-      get: (_target, prop) => {
-        if (this.target) {
-          return this.target.on[prop];
-        } else {
-          return (...args) => {
-            this.onQueue.push({
-              method: prop,
-              args
-            });
-          };
-        }
-      }
-    });
-    this.proxiedTarget = new Proxy({}, {
-      get: (_target, prop) => {
-        if (this.target) {
-          return this.target[prop];
-        } else if (prop === "on") {
-          return this.proxiedOn;
-        } else if (Object.keys(this.fallbacks).includes(prop)) {
-          return (...args) => {
-            this.targetQueue.push({
-              method: prop,
-              args,
-              resolve: () => {
-              }
-            });
-            return this.fallbacks[prop](...args);
-          };
-        } else {
-          return (...args) => {
-            return new Promise((resolve2) => {
-              this.targetQueue.push({
-                method: prop,
-                args,
-                resolve: resolve2
-              });
-            });
-          };
-        }
-      }
-    });
-  }
-  async setRealTarget(target) {
-    this.target = target;
-    for (const item of this.onQueue) {
-      this.target.on[item.method](...item.args);
-    }
-    for (const item of this.targetQueue) {
-      item.resolve(await this.target[item.method](...item.args));
-    }
-  }
-}
-function setupDevtoolsPlugin(pluginDescriptor, setupFn) {
-  const descriptor = pluginDescriptor;
-  const target = getTarget();
-  const hook = getDevtoolsGlobalHook();
-  const enableProxy = isProxyAvailable && descriptor.enableEarlyProxy;
-  if (hook && (target.__VUE_DEVTOOLS_PLUGIN_API_AVAILABLE__ || !enableProxy)) {
-    hook.emit(HOOK_SETUP, pluginDescriptor, setupFn);
-  } else {
-    const proxy = enableProxy ? new ApiProxy(descriptor, hook) : null;
-    const list = target.__VUE_DEVTOOLS_PLUGINS__ = target.__VUE_DEVTOOLS_PLUGINS__ || [];
-    list.push({
-      pluginDescriptor: descriptor,
-      setupFn,
-      proxy
-    });
-    if (proxy)
-      setupFn(proxy.proxiedTarget);
-  }
-}
-/*!
- * vuex v4.0.2
- * (c) 2021 Evan You
- * @license MIT
- */
-var storeKey = "store";
-function useStore(key2) {
-  if (key2 === void 0)
-    key2 = null;
-  return inject(key2 !== null ? key2 : storeKey);
-}
-function forEachValue(obj, fn) {
-  Object.keys(obj).forEach(function(key2) {
-    return fn(obj[key2], key2);
-  });
-}
-function isObject$1(obj) {
-  return obj !== null && typeof obj === "object";
-}
-function isPromise(val) {
-  return val && typeof val.then === "function";
-}
-function partial(fn, arg) {
-  return function() {
-    return fn(arg);
-  };
-}
-function genericSubscribe(fn, subs, options) {
-  if (subs.indexOf(fn) < 0) {
-    options && options.prepend ? subs.unshift(fn) : subs.push(fn);
-  }
-  return function() {
-    var i2 = subs.indexOf(fn);
-    if (i2 > -1) {
-      subs.splice(i2, 1);
-    }
-  };
-}
-function resetStore(store2, hot) {
-  store2._actions = /* @__PURE__ */ Object.create(null);
-  store2._mutations = /* @__PURE__ */ Object.create(null);
-  store2._wrappedGetters = /* @__PURE__ */ Object.create(null);
-  store2._modulesNamespaceMap = /* @__PURE__ */ Object.create(null);
-  var state2 = store2.state;
-  installModule(store2, state2, [], store2._modules.root, true);
-  resetStoreState(store2, state2, hot);
-}
-function resetStoreState(store2, state2, hot) {
-  var oldState = store2._state;
-  store2.getters = {};
-  store2._makeLocalGettersCache = /* @__PURE__ */ Object.create(null);
-  var wrappedGetters = store2._wrappedGetters;
-  var computedObj = {};
-  forEachValue(wrappedGetters, function(fn, key2) {
-    computedObj[key2] = partial(fn, store2);
-    Object.defineProperty(store2.getters, key2, {
-      get: function() {
-        return computedObj[key2]();
-      },
-      enumerable: true
-    });
-  });
-  store2._state = reactive({
-    data: state2
-  });
-  if (store2.strict) {
-    enableStrictMode(store2);
-  }
-  if (oldState) {
-    if (hot) {
-      store2._withCommit(function() {
-        oldState.data = null;
-      });
-    }
-  }
-}
-function installModule(store2, rootState, path, module, hot) {
-  var isRoot = !path.length;
-  var namespace = store2._modules.getNamespace(path);
-  if (module.namespaced) {
-    if (store2._modulesNamespaceMap[namespace] && false) {
-      console.error("[vuex] duplicate namespace " + namespace + " for the namespaced module " + path.join("/"));
-    }
-    store2._modulesNamespaceMap[namespace] = module;
-  }
-  if (!isRoot && !hot) {
-    var parentState = getNestedState(rootState, path.slice(0, -1));
-    var moduleName = path[path.length - 1];
-    store2._withCommit(function() {
-      parentState[moduleName] = module.state;
-    });
-  }
-  var local = module.context = makeLocalContext(store2, namespace, path);
-  module.forEachMutation(function(mutation, key2) {
-    var namespacedType = namespace + key2;
-    registerMutation(store2, namespacedType, mutation, local);
-  });
-  module.forEachAction(function(action, key2) {
-    var type = action.root ? key2 : namespace + key2;
-    var handler = action.handler || action;
-    registerAction(store2, type, handler, local);
-  });
-  module.forEachGetter(function(getter, key2) {
-    var namespacedType = namespace + key2;
-    registerGetter(store2, namespacedType, getter, local);
-  });
-  module.forEachChild(function(child, key2) {
-    installModule(store2, rootState, path.concat(key2), child, hot);
-  });
-}
-function makeLocalContext(store2, namespace, path) {
-  var noNamespace = namespace === "";
-  var local = {
-    dispatch: noNamespace ? store2.dispatch : function(_type, _payload, _options) {
-      var args = unifyObjectStyle(_type, _payload, _options);
-      var payload = args.payload;
-      var options = args.options;
-      var type = args.type;
-      if (!options || !options.root) {
-        type = namespace + type;
-      }
-      return store2.dispatch(type, payload);
-    },
-    commit: noNamespace ? store2.commit : function(_type, _payload, _options) {
-      var args = unifyObjectStyle(_type, _payload, _options);
-      var payload = args.payload;
-      var options = args.options;
-      var type = args.type;
-      if (!options || !options.root) {
-        type = namespace + type;
-      }
-      store2.commit(type, payload, options);
-    }
-  };
-  Object.defineProperties(local, {
-    getters: {
-      get: noNamespace ? function() {
-        return store2.getters;
-      } : function() {
-        return makeLocalGetters(store2, namespace);
-      }
-    },
-    state: {
-      get: function() {
-        return getNestedState(store2.state, path);
-      }
-    }
-  });
-  return local;
-}
-function makeLocalGetters(store2, namespace) {
-  if (!store2._makeLocalGettersCache[namespace]) {
-    var gettersProxy = {};
-    var splitPos = namespace.length;
-    Object.keys(store2.getters).forEach(function(type) {
-      if (type.slice(0, splitPos) !== namespace) {
-        return;
-      }
-      var localType = type.slice(splitPos);
-      Object.defineProperty(gettersProxy, localType, {
-        get: function() {
-          return store2.getters[type];
-        },
-        enumerable: true
-      });
-    });
-    store2._makeLocalGettersCache[namespace] = gettersProxy;
-  }
-  return store2._makeLocalGettersCache[namespace];
-}
-function registerMutation(store2, type, handler, local) {
-  var entry = store2._mutations[type] || (store2._mutations[type] = []);
-  entry.push(function wrappedMutationHandler(payload) {
-    handler.call(store2, local.state, payload);
-  });
-}
-function registerAction(store2, type, handler, local) {
-  var entry = store2._actions[type] || (store2._actions[type] = []);
-  entry.push(function wrappedActionHandler(payload) {
-    var res = handler.call(store2, {
-      dispatch: local.dispatch,
-      commit: local.commit,
-      getters: local.getters,
-      state: local.state,
-      rootGetters: store2.getters,
-      rootState: store2.state
-    }, payload);
-    if (!isPromise(res)) {
-      res = Promise.resolve(res);
-    }
-    if (store2._devtoolHook) {
-      return res.catch(function(err) {
-        store2._devtoolHook.emit("vuex:error", err);
-        throw err;
-      });
-    } else {
-      return res;
-    }
-  });
-}
-function registerGetter(store2, type, rawGetter, local) {
-  if (store2._wrappedGetters[type]) {
-    return;
-  }
-  store2._wrappedGetters[type] = function wrappedGetter(store3) {
-    return rawGetter(local.state, local.getters, store3.state, store3.getters);
-  };
-}
-function enableStrictMode(store2) {
-  watch(function() {
-    return store2._state.data;
-  }, function() {
-  }, { deep: true, flush: "sync" });
-}
-function getNestedState(state2, path) {
-  return path.reduce(function(state3, key2) {
-    return state3[key2];
-  }, state2);
-}
-function unifyObjectStyle(type, payload, options) {
-  if (isObject$1(type) && type.type) {
-    options = payload;
-    payload = type;
-    type = type.type;
-  }
-  return { type, payload, options };
-}
-var LABEL_VUEX_BINDINGS = "vuex bindings";
-var MUTATIONS_LAYER_ID = "vuex:mutations";
-var ACTIONS_LAYER_ID = "vuex:actions";
-var INSPECTOR_ID = "vuex";
-var actionId = 0;
-function addDevtools(app, store2) {
-  setupDevtoolsPlugin({
-    id: "org.vuejs.vuex",
-    app,
-    label: "Vuex",
-    homepage: "https://next.vuex.vuejs.org/",
-    logo: "https://vuejs.org/images/icons/favicon-96x96.png",
-    packageName: "vuex",
-    componentStateTypes: [LABEL_VUEX_BINDINGS]
-  }, function(api) {
-    api.addTimelineLayer({
-      id: MUTATIONS_LAYER_ID,
-      label: "Vuex Mutations",
-      color: COLOR_LIME_500
-    });
-    api.addTimelineLayer({
-      id: ACTIONS_LAYER_ID,
-      label: "Vuex Actions",
-      color: COLOR_LIME_500
-    });
-    api.addInspector({
-      id: INSPECTOR_ID,
-      label: "Vuex",
-      icon: "storage",
-      treeFilterPlaceholder: "Filter stores..."
-    });
-    api.on.getInspectorTree(function(payload) {
-      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
-        if (payload.filter) {
-          var nodes = [];
-          flattenStoreForInspectorTree(nodes, store2._modules.root, payload.filter, "");
-          payload.rootNodes = nodes;
-        } else {
-          payload.rootNodes = [
-            formatStoreForInspectorTree(store2._modules.root, "")
-          ];
-        }
-      }
-    });
-    api.on.getInspectorState(function(payload) {
-      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
-        var modulePath = payload.nodeId;
-        makeLocalGetters(store2, modulePath);
-        payload.state = formatStoreForInspectorState(getStoreModule(store2._modules, modulePath), modulePath === "root" ? store2.getters : store2._makeLocalGettersCache, modulePath);
-      }
-    });
-    api.on.editInspectorState(function(payload) {
-      if (payload.app === app && payload.inspectorId === INSPECTOR_ID) {
-        var modulePath = payload.nodeId;
-        var path = payload.path;
-        if (modulePath !== "root") {
-          path = modulePath.split("/").filter(Boolean).concat(path);
-        }
-        store2._withCommit(function() {
-          payload.set(store2._state.data, path, payload.state.value);
-        });
-      }
-    });
-    store2.subscribe(function(mutation, state2) {
-      var data2 = {};
-      if (mutation.payload) {
-        data2.payload = mutation.payload;
-      }
-      data2.state = state2;
-      api.notifyComponentUpdate();
-      api.sendInspectorTree(INSPECTOR_ID);
-      api.sendInspectorState(INSPECTOR_ID);
-      api.addTimelineEvent({
-        layerId: MUTATIONS_LAYER_ID,
-        event: {
-          time: Date.now(),
-          title: mutation.type,
-          data: data2
-        }
-      });
-    });
-    store2.subscribeAction({
-      before: function(action, state2) {
-        var data2 = {};
-        if (action.payload) {
-          data2.payload = action.payload;
-        }
-        action._id = actionId++;
-        action._time = Date.now();
-        data2.state = state2;
-        api.addTimelineEvent({
-          layerId: ACTIONS_LAYER_ID,
-          event: {
-            time: action._time,
-            title: action.type,
-            groupId: action._id,
-            subtitle: "start",
-            data: data2
-          }
-        });
-      },
-      after: function(action, state2) {
-        var data2 = {};
-        var duration = Date.now() - action._time;
-        data2.duration = {
-          _custom: {
-            type: "duration",
-            display: duration + "ms",
-            tooltip: "Action duration",
-            value: duration
-          }
-        };
-        if (action.payload) {
-          data2.payload = action.payload;
-        }
-        data2.state = state2;
-        api.addTimelineEvent({
-          layerId: ACTIONS_LAYER_ID,
-          event: {
-            time: Date.now(),
-            title: action.type,
-            groupId: action._id,
-            subtitle: "end",
-            data: data2
-          }
-        });
-      }
-    });
-  });
-}
-var COLOR_LIME_500 = 8702998;
-var COLOR_DARK = 6710886;
-var COLOR_WHITE = 16777215;
-var TAG_NAMESPACED = {
-  label: "namespaced",
-  textColor: COLOR_WHITE,
-  backgroundColor: COLOR_DARK
-};
-function extractNameFromPath(path) {
-  return path && path !== "root" ? path.split("/").slice(-2, -1)[0] : "Root";
-}
-function formatStoreForInspectorTree(module, path) {
-  return {
-    id: path || "root",
-    label: extractNameFromPath(path),
-    tags: module.namespaced ? [TAG_NAMESPACED] : [],
-    children: Object.keys(module._children).map(function(moduleName) {
-      return formatStoreForInspectorTree(module._children[moduleName], path + moduleName + "/");
-    })
-  };
-}
-function flattenStoreForInspectorTree(result, module, filter, path) {
-  if (path.includes(filter)) {
-    result.push({
-      id: path || "root",
-      label: path.endsWith("/") ? path.slice(0, path.length - 1) : path || "Root",
-      tags: module.namespaced ? [TAG_NAMESPACED] : []
-    });
-  }
-  Object.keys(module._children).forEach(function(moduleName) {
-    flattenStoreForInspectorTree(result, module._children[moduleName], filter, path + moduleName + "/");
-  });
-}
-function formatStoreForInspectorState(module, getters2, path) {
-  getters2 = path === "root" ? getters2 : getters2[path];
-  var gettersKeys = Object.keys(getters2);
-  var storeState = {
-    state: Object.keys(module.state).map(function(key2) {
-      return {
-        key: key2,
-        editable: true,
-        value: module.state[key2]
-      };
-    })
-  };
-  if (gettersKeys.length) {
-    var tree = transformPathsToObjectTree(getters2);
-    storeState.getters = Object.keys(tree).map(function(key2) {
-      return {
-        key: key2.endsWith("/") ? extractNameFromPath(key2) : key2,
-        editable: false,
-        value: canThrow(function() {
-          return tree[key2];
-        })
-      };
-    });
-  }
-  return storeState;
-}
-function transformPathsToObjectTree(getters2) {
-  var result = {};
-  Object.keys(getters2).forEach(function(key2) {
-    var path = key2.split("/");
-    if (path.length > 1) {
-      var target = result;
-      var leafKey = path.pop();
-      path.forEach(function(p2) {
-        if (!target[p2]) {
-          target[p2] = {
-            _custom: {
-              value: {},
-              display: p2,
-              tooltip: "Module",
-              abstract: true
-            }
-          };
-        }
-        target = target[p2]._custom.value;
-      });
-      target[leafKey] = canThrow(function() {
-        return getters2[key2];
-      });
-    } else {
-      result[key2] = canThrow(function() {
-        return getters2[key2];
-      });
-    }
-  });
-  return result;
-}
-function getStoreModule(moduleMap, path) {
-  var names2 = path.split("/").filter(function(n2) {
-    return n2;
-  });
-  return names2.reduce(function(module, moduleName, i2) {
-    var child = module[moduleName];
-    if (!child) {
-      throw new Error('Missing module "' + moduleName + '" for path "' + path + '".');
-    }
-    return i2 === names2.length - 1 ? child : child._children;
-  }, path === "root" ? moduleMap : moduleMap.root._children);
-}
-function canThrow(cb) {
-  try {
-    return cb();
-  } catch (e2) {
-    return e2;
-  }
-}
-var Module = function Module2(rawModule, runtime) {
-  this.runtime = runtime;
-  this._children = /* @__PURE__ */ Object.create(null);
-  this._rawModule = rawModule;
-  var rawState = rawModule.state;
-  this.state = (typeof rawState === "function" ? rawState() : rawState) || {};
-};
-var prototypeAccessors$1 = { namespaced: { configurable: true } };
-prototypeAccessors$1.namespaced.get = function() {
-  return !!this._rawModule.namespaced;
-};
-Module.prototype.addChild = function addChild(key2, module) {
-  this._children[key2] = module;
-};
-Module.prototype.removeChild = function removeChild(key2) {
-  delete this._children[key2];
-};
-Module.prototype.getChild = function getChild(key2) {
-  return this._children[key2];
-};
-Module.prototype.hasChild = function hasChild(key2) {
-  return key2 in this._children;
-};
-Module.prototype.update = function update5(rawModule) {
-  this._rawModule.namespaced = rawModule.namespaced;
-  if (rawModule.actions) {
-    this._rawModule.actions = rawModule.actions;
-  }
-  if (rawModule.mutations) {
-    this._rawModule.mutations = rawModule.mutations;
-  }
-  if (rawModule.getters) {
-    this._rawModule.getters = rawModule.getters;
-  }
-};
-Module.prototype.forEachChild = function forEachChild(fn) {
-  forEachValue(this._children, fn);
-};
-Module.prototype.forEachGetter = function forEachGetter(fn) {
-  if (this._rawModule.getters) {
-    forEachValue(this._rawModule.getters, fn);
-  }
-};
-Module.prototype.forEachAction = function forEachAction(fn) {
-  if (this._rawModule.actions) {
-    forEachValue(this._rawModule.actions, fn);
-  }
-};
-Module.prototype.forEachMutation = function forEachMutation(fn) {
-  if (this._rawModule.mutations) {
-    forEachValue(this._rawModule.mutations, fn);
-  }
-};
-Object.defineProperties(Module.prototype, prototypeAccessors$1);
-var ModuleCollection = function ModuleCollection2(rawRootModule) {
-  this.register([], rawRootModule, false);
-};
-ModuleCollection.prototype.get = function get2(path) {
-  return path.reduce(function(module, key2) {
-    return module.getChild(key2);
-  }, this.root);
-};
-ModuleCollection.prototype.getNamespace = function getNamespace(path) {
-  var module = this.root;
-  return path.reduce(function(namespace, key2) {
-    module = module.getChild(key2);
-    return namespace + (module.namespaced ? key2 + "/" : "");
-  }, "");
-};
-ModuleCollection.prototype.update = function update$1(rawRootModule) {
-  update6([], this.root, rawRootModule);
-};
-ModuleCollection.prototype.register = function register(path, rawModule, runtime) {
-  var this$1$1 = this;
-  if (runtime === void 0)
-    runtime = true;
-  var newModule = new Module(rawModule, runtime);
-  if (path.length === 0) {
-    this.root = newModule;
-  } else {
-    var parent = this.get(path.slice(0, -1));
-    parent.addChild(path[path.length - 1], newModule);
-  }
-  if (rawModule.modules) {
-    forEachValue(rawModule.modules, function(rawChildModule, key2) {
-      this$1$1.register(path.concat(key2), rawChildModule, runtime);
-    });
-  }
-};
-ModuleCollection.prototype.unregister = function unregister(path) {
-  var parent = this.get(path.slice(0, -1));
-  var key2 = path[path.length - 1];
-  var child = parent.getChild(key2);
-  if (!child) {
-    return;
-  }
-  if (!child.runtime) {
-    return;
-  }
-  parent.removeChild(key2);
-};
-ModuleCollection.prototype.isRegistered = function isRegistered(path) {
-  var parent = this.get(path.slice(0, -1));
-  var key2 = path[path.length - 1];
-  if (parent) {
-    return parent.hasChild(key2);
-  }
-  return false;
-};
-function update6(path, targetModule, newModule) {
-  targetModule.update(newModule);
-  if (newModule.modules) {
-    for (var key2 in newModule.modules) {
-      if (!targetModule.getChild(key2)) {
-        return;
-      }
-      update6(path.concat(key2), targetModule.getChild(key2), newModule.modules[key2]);
-    }
-  }
-}
-function createStore(options) {
-  return new Store(options);
-}
-var Store = function Store2(options) {
-  var this$1$1 = this;
-  if (options === void 0)
-    options = {};
-  var plugins = options.plugins;
-  if (plugins === void 0)
-    plugins = [];
-  var strict = options.strict;
-  if (strict === void 0)
-    strict = false;
-  var devtools = options.devtools;
-  this._committing = false;
-  this._actions = /* @__PURE__ */ Object.create(null);
-  this._actionSubscribers = [];
-  this._mutations = /* @__PURE__ */ Object.create(null);
-  this._wrappedGetters = /* @__PURE__ */ Object.create(null);
-  this._modules = new ModuleCollection(options);
-  this._modulesNamespaceMap = /* @__PURE__ */ Object.create(null);
-  this._subscribers = [];
-  this._makeLocalGettersCache = /* @__PURE__ */ Object.create(null);
-  this._devtools = devtools;
-  var store2 = this;
-  var ref2 = this;
-  var dispatch2 = ref2.dispatch;
-  var commit2 = ref2.commit;
-  this.dispatch = function boundDispatch(type, payload) {
-    return dispatch2.call(store2, type, payload);
-  };
-  this.commit = function boundCommit(type, payload, options2) {
-    return commit2.call(store2, type, payload, options2);
-  };
-  this.strict = strict;
-  var state2 = this._modules.root.state;
-  installModule(this, state2, [], this._modules.root);
-  resetStoreState(this, state2);
-  plugins.forEach(function(plugin) {
-    return plugin(this$1$1);
-  });
-};
-var prototypeAccessors = { state: { configurable: true } };
-Store.prototype.install = function install(app, injectKey) {
-  app.provide(injectKey || storeKey, this);
-  app.config.globalProperties.$store = this;
-  var useDevtools = this._devtools !== void 0 ? this._devtools : false;
-  if (useDevtools) {
-    addDevtools(app, this);
-  }
-};
-prototypeAccessors.state.get = function() {
-  return this._state.data;
-};
-prototypeAccessors.state.set = function(v2) {
-};
-Store.prototype.commit = function commit(_type, _payload, _options) {
-  var this$1$1 = this;
-  var ref2 = unifyObjectStyle(_type, _payload, _options);
-  var type = ref2.type;
-  var payload = ref2.payload;
-  var mutation = { type, payload };
-  var entry = this._mutations[type];
-  if (!entry) {
-    return;
-  }
-  this._withCommit(function() {
-    entry.forEach(function commitIterator(handler) {
-      handler(payload);
-    });
-  });
-  this._subscribers.slice().forEach(function(sub) {
-    return sub(mutation, this$1$1.state);
-  });
-};
-Store.prototype.dispatch = function dispatch(_type, _payload) {
-  var this$1$1 = this;
-  var ref2 = unifyObjectStyle(_type, _payload);
-  var type = ref2.type;
-  var payload = ref2.payload;
-  var action = { type, payload };
-  var entry = this._actions[type];
-  if (!entry) {
-    return;
-  }
-  try {
-    this._actionSubscribers.slice().filter(function(sub) {
-      return sub.before;
-    }).forEach(function(sub) {
-      return sub.before(action, this$1$1.state);
-    });
-  } catch (e2) {
-  }
-  var result = entry.length > 1 ? Promise.all(entry.map(function(handler) {
-    return handler(payload);
-  })) : entry[0](payload);
-  return new Promise(function(resolve2, reject) {
-    result.then(function(res) {
-      try {
-        this$1$1._actionSubscribers.filter(function(sub) {
-          return sub.after;
-        }).forEach(function(sub) {
-          return sub.after(action, this$1$1.state);
-        });
-      } catch (e2) {
-      }
-      resolve2(res);
-    }, function(error) {
-      try {
-        this$1$1._actionSubscribers.filter(function(sub) {
-          return sub.error;
-        }).forEach(function(sub) {
-          return sub.error(action, this$1$1.state, error);
-        });
-      } catch (e2) {
-      }
-      reject(error);
-    });
-  });
-};
-Store.prototype.subscribe = function subscribe(fn, options) {
-  return genericSubscribe(fn, this._subscribers, options);
-};
-Store.prototype.subscribeAction = function subscribeAction(fn, options) {
-  var subs = typeof fn === "function" ? { before: fn } : fn;
-  return genericSubscribe(subs, this._actionSubscribers, options);
-};
-Store.prototype.watch = function watch$1(getter, cb, options) {
-  var this$1$1 = this;
-  return watch(function() {
-    return getter(this$1$1.state, this$1$1.getters);
-  }, cb, Object.assign({}, options));
-};
-Store.prototype.replaceState = function replaceState(state2) {
-  var this$1$1 = this;
-  this._withCommit(function() {
-    this$1$1._state.data = state2;
-  });
-};
-Store.prototype.registerModule = function registerModule(path, rawModule, options) {
-  if (options === void 0)
-    options = {};
-  if (typeof path === "string") {
-    path = [path];
-  }
-  this._modules.register(path, rawModule);
-  installModule(this, this.state, path, this._modules.get(path), options.preserveState);
-  resetStoreState(this, this.state);
-};
-Store.prototype.unregisterModule = function unregisterModule(path) {
-  var this$1$1 = this;
-  if (typeof path === "string") {
-    path = [path];
-  }
-  this._modules.unregister(path);
-  this._withCommit(function() {
-    var parentState = getNestedState(this$1$1.state, path.slice(0, -1));
-    delete parentState[path[path.length - 1]];
-  });
-  resetStore(this);
-};
-Store.prototype.hasModule = function hasModule(path) {
-  if (typeof path === "string") {
-    path = [path];
-  }
-  return this._modules.isRegistered(path);
-};
-Store.prototype.hotUpdate = function hotUpdate(newOptions) {
-  this._modules.update(newOptions);
-  resetStore(this, true);
-};
-Store.prototype._withCommit = function _withCommit(fn) {
-  var committing = this._committing;
-  this._committing = true;
-  fn();
-  this._committing = committing;
-};
-Object.defineProperties(Store.prototype, prototypeAccessors);
-var axios$2 = { exports: {} };
-var bind$2 = function bind(fn, thisArg) {
-  return function wrap() {
-    var args = new Array(arguments.length);
-    for (var i2 = 0; i2 < args.length; i2++) {
-      args[i2] = arguments[i2];
-    }
-    return fn.apply(thisArg, args);
-  };
-};
-var bind$1 = bind$2;
-var toString2 = Object.prototype.toString;
-function isArray(val) {
-  return Array.isArray(val);
-}
-function isUndefined(val) {
-  return typeof val === "undefined";
-}
-function isBuffer2(val) {
-  return val !== null && !isUndefined(val) && val.constructor !== null && !isUndefined(val.constructor) && typeof val.constructor.isBuffer === "function" && val.constructor.isBuffer(val);
-}
-function isArrayBuffer(val) {
-  return toString2.call(val) === "[object ArrayBuffer]";
-}
-function isFormData(val) {
-  return toString2.call(val) === "[object FormData]";
-}
-function isArrayBufferView(val) {
-  var result;
-  if (typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView) {
-    result = ArrayBuffer.isView(val);
-  } else {
-    result = val && val.buffer && isArrayBuffer(val.buffer);
-  }
-  return result;
-}
-function isString(val) {
-  return typeof val === "string";
-}
-function isNumber(val) {
-  return typeof val === "number";
-}
-function isObject(val) {
-  return val !== null && typeof val === "object";
-}
-function isPlainObject(val) {
-  if (toString2.call(val) !== "[object Object]") {
-    return false;
-  }
-  var prototype = Object.getPrototypeOf(val);
-  return prototype === null || prototype === Object.prototype;
-}
-function isDate(val) {
-  return toString2.call(val) === "[object Date]";
-}
-function isFile(val) {
-  return toString2.call(val) === "[object File]";
-}
-function isBlob(val) {
-  return toString2.call(val) === "[object Blob]";
-}
-function isFunction(val) {
-  return toString2.call(val) === "[object Function]";
-}
-function isStream(val) {
-  return isObject(val) && isFunction(val.pipe);
-}
-function isURLSearchParams(val) {
-  return toString2.call(val) === "[object URLSearchParams]";
-}
-function trim(str) {
-  return str.trim ? str.trim() : str.replace(/^\s+|\s+$/g, "");
-}
-function isStandardBrowserEnv() {
-  if (typeof navigator !== "undefined" && (navigator.product === "ReactNative" || navigator.product === "NativeScript" || navigator.product === "NS")) {
-    return false;
-  }
-  return typeof window !== "undefined" && typeof document !== "undefined";
-}
-function forEach(obj, fn) {
-  if (obj === null || typeof obj === "undefined") {
-    return;
-  }
-  if (typeof obj !== "object") {
-    obj = [obj];
-  }
-  if (isArray(obj)) {
-    for (var i2 = 0, l2 = obj.length; i2 < l2; i2++) {
-      fn.call(null, obj[i2], i2, obj);
-    }
-  } else {
-    for (var key2 in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key2)) {
-        fn.call(null, obj[key2], key2, obj);
-      }
-    }
-  }
-}
-function merge() {
-  var result = {};
-  function assignValue(val, key2) {
-    if (isPlainObject(result[key2]) && isPlainObject(val)) {
-      result[key2] = merge(result[key2], val);
-    } else if (isPlainObject(val)) {
-      result[key2] = merge({}, val);
-    } else if (isArray(val)) {
-      result[key2] = val.slice();
-    } else {
-      result[key2] = val;
-    }
-  }
-  for (var i2 = 0, l2 = arguments.length; i2 < l2; i2++) {
-    forEach(arguments[i2], assignValue);
-  }
-  return result;
-}
-function extend(a2, b2, thisArg) {
-  forEach(b2, function assignValue(val, key2) {
-    if (thisArg && typeof val === "function") {
-      a2[key2] = bind$1(val, thisArg);
-    } else {
-      a2[key2] = val;
-    }
-  });
-  return a2;
-}
-function stripBOM(content) {
-  if (content.charCodeAt(0) === 65279) {
-    content = content.slice(1);
-  }
-  return content;
-}
-var utils$e = {
-  isArray,
-  isArrayBuffer,
-  isBuffer: isBuffer2,
-  isFormData,
-  isArrayBufferView,
-  isString,
-  isNumber,
-  isObject,
-  isPlainObject,
-  isUndefined,
-  isDate,
-  isFile,
-  isBlob,
-  isFunction,
-  isStream,
-  isURLSearchParams,
-  isStandardBrowserEnv,
-  forEach,
-  merge,
-  extend,
-  trim,
-  stripBOM
-};
-var utils$d = utils$e;
-function encode3(val) {
-  return encodeURIComponent(val).replace(/%3A/gi, ":").replace(/%24/g, "$").replace(/%2C/gi, ",").replace(/%20/g, "+").replace(/%5B/gi, "[").replace(/%5D/gi, "]");
-}
-var buildURL$2 = function buildURL(url, params, paramsSerializer) {
-  if (!params) {
-    return url;
-  }
-  var serializedParams;
-  if (paramsSerializer) {
-    serializedParams = paramsSerializer(params);
-  } else if (utils$d.isURLSearchParams(params)) {
-    serializedParams = params.toString();
-  } else {
-    var parts = [];
-    utils$d.forEach(params, function serialize(val, key2) {
-      if (val === null || typeof val === "undefined") {
-        return;
-      }
-      if (utils$d.isArray(val)) {
-        key2 = key2 + "[]";
-      } else {
-        val = [val];
-      }
-      utils$d.forEach(val, function parseValue(v2) {
-        if (utils$d.isDate(v2)) {
-          v2 = v2.toISOString();
-        } else if (utils$d.isObject(v2)) {
-          v2 = JSON.stringify(v2);
-        }
-        parts.push(encode3(key2) + "=" + encode3(v2));
-      });
-    });
-    serializedParams = parts.join("&");
-  }
-  if (serializedParams) {
-    var hashmarkIndex = url.indexOf("#");
-    if (hashmarkIndex !== -1) {
-      url = url.slice(0, hashmarkIndex);
-    }
-    url += (url.indexOf("?") === -1 ? "?" : "&") + serializedParams;
-  }
-  return url;
-};
-var utils$c = utils$e;
-function InterceptorManager$1() {
-  this.handlers = [];
-}
-InterceptorManager$1.prototype.use = function use(fulfilled, rejected, options) {
-  this.handlers.push({
-    fulfilled,
-    rejected,
-    synchronous: options ? options.synchronous : false,
-    runWhen: options ? options.runWhen : null
-  });
-  return this.handlers.length - 1;
-};
-InterceptorManager$1.prototype.eject = function eject(id2) {
-  if (this.handlers[id2]) {
-    this.handlers[id2] = null;
-  }
-};
-InterceptorManager$1.prototype.forEach = function forEach2(fn) {
-  utils$c.forEach(this.handlers, function forEachHandler(h2) {
-    if (h2 !== null) {
-      fn(h2);
-    }
-  });
-};
-var InterceptorManager_1 = InterceptorManager$1;
-var utils$b = utils$e;
-var normalizeHeaderName$1 = function normalizeHeaderName(headers, normalizedName) {
-  utils$b.forEach(headers, function processHeader(value, name) {
-    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
-      headers[normalizedName] = value;
-      delete headers[name];
-    }
-  });
-};
-var enhanceError$2 = function enhanceError(error, config2, code2, request2, response) {
-  error.config = config2;
-  if (code2) {
-    error.code = code2;
-  }
-  error.request = request2;
-  error.response = response;
-  error.isAxiosError = true;
-  error.toJSON = function toJSON3() {
-    return {
-      message: this.message,
-      name: this.name,
-      description: this.description,
-      number: this.number,
-      fileName: this.fileName,
-      lineNumber: this.lineNumber,
-      columnNumber: this.columnNumber,
-      stack: this.stack,
-      config: this.config,
-      code: this.code,
-      status: this.response && this.response.status ? this.response.status : null
-    };
-  };
-  return error;
-};
-var enhanceError$1 = enhanceError$2;
-var createError$2 = function createError(message, config2, code2, request2, response) {
-  var error = new Error(message);
-  return enhanceError$1(error, config2, code2, request2, response);
-};
-var createError$1 = createError$2;
-var settle$1 = function settle(resolve2, reject, response) {
-  var validateStatus2 = response.config.validateStatus;
-  if (!response.status || !validateStatus2 || validateStatus2(response.status)) {
-    resolve2(response);
-  } else {
-    reject(createError$1("Request failed with status code " + response.status, response.config, null, response.request, response));
-  }
-};
-var utils$a = utils$e;
-var cookies$1 = utils$a.isStandardBrowserEnv() ? function standardBrowserEnv() {
-  return {
-    write: function write6(name, value, expires, path, domain2, secure) {
-      var cookie = [];
-      cookie.push(name + "=" + encodeURIComponent(value));
-      if (utils$a.isNumber(expires)) {
-        cookie.push("expires=" + new Date(expires).toGMTString());
-      }
-      if (utils$a.isString(path)) {
-        cookie.push("path=" + path);
-      }
-      if (utils$a.isString(domain2)) {
-        cookie.push("domain=" + domain2);
-      }
-      if (secure === true) {
-        cookie.push("secure");
-      }
-      document.cookie = cookie.join("; ");
-    },
-    read: function read2(name) {
-      var match = document.cookie.match(new RegExp("(^|;\\s*)(" + name + ")=([^;]*)"));
-      return match ? decodeURIComponent(match[3]) : null;
-    },
-    remove: function remove2(name) {
-      this.write(name, "", Date.now() - 864e5);
-    }
-  };
-}() : function nonStandardBrowserEnv() {
-  return {
-    write: function write6() {
-    },
-    read: function read2() {
-      return null;
-    },
-    remove: function remove2() {
-    }
-  };
-}();
-var isAbsoluteURL$1 = function isAbsoluteURL(url) {
-  return /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url);
-};
-var combineURLs$1 = function combineURLs(baseURL, relativeURL) {
-  return relativeURL ? baseURL.replace(/\/+$/, "") + "/" + relativeURL.replace(/^\/+/, "") : baseURL;
-};
-var isAbsoluteURL2 = isAbsoluteURL$1;
-var combineURLs2 = combineURLs$1;
-var buildFullPath$1 = function buildFullPath(baseURL, requestedURL) {
-  if (baseURL && !isAbsoluteURL2(requestedURL)) {
-    return combineURLs2(baseURL, requestedURL);
-  }
-  return requestedURL;
-};
-var utils$9 = utils$e;
-var ignoreDuplicateOf = [
-  "age",
-  "authorization",
-  "content-length",
-  "content-type",
-  "etag",
-  "expires",
-  "from",
-  "host",
-  "if-modified-since",
-  "if-unmodified-since",
-  "last-modified",
-  "location",
-  "max-forwards",
-  "proxy-authorization",
-  "referer",
-  "retry-after",
-  "user-agent"
-];
-var parseHeaders$1 = function parseHeaders(headers) {
-  var parsed = {};
-  var key2;
-  var val;
-  var i2;
-  if (!headers) {
-    return parsed;
-  }
-  utils$9.forEach(headers.split("\n"), function parser(line) {
-    i2 = line.indexOf(":");
-    key2 = utils$9.trim(line.substr(0, i2)).toLowerCase();
-    val = utils$9.trim(line.substr(i2 + 1));
-    if (key2) {
-      if (parsed[key2] && ignoreDuplicateOf.indexOf(key2) >= 0) {
-        return;
-      }
-      if (key2 === "set-cookie") {
-        parsed[key2] = (parsed[key2] ? parsed[key2] : []).concat([val]);
-      } else {
-        parsed[key2] = parsed[key2] ? parsed[key2] + ", " + val : val;
-      }
-    }
-  });
-  return parsed;
-};
-var utils$8 = utils$e;
-var isURLSameOrigin$1 = utils$8.isStandardBrowserEnv() ? function standardBrowserEnv2() {
-  var msie = /(msie|trident)/i.test(navigator.userAgent);
-  var urlParsingNode = document.createElement("a");
-  var originURL;
-  function resolveURL(url) {
-    var href = url;
-    if (msie) {
-      urlParsingNode.setAttribute("href", href);
-      href = urlParsingNode.href;
-    }
-    urlParsingNode.setAttribute("href", href);
-    return {
-      href: urlParsingNode.href,
-      protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, "") : "",
-      host: urlParsingNode.host,
-      search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, "") : "",
-      hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, "") : "",
-      hostname: urlParsingNode.hostname,
-      port: urlParsingNode.port,
-      pathname: urlParsingNode.pathname.charAt(0) === "/" ? urlParsingNode.pathname : "/" + urlParsingNode.pathname
-    };
-  }
-  originURL = resolveURL(window.location.href);
-  return function isURLSameOrigin2(requestURL) {
-    var parsed = utils$8.isString(requestURL) ? resolveURL(requestURL) : requestURL;
-    return parsed.protocol === originURL.protocol && parsed.host === originURL.host;
-  };
-}() : function nonStandardBrowserEnv2() {
-  return function isURLSameOrigin2() {
-    return true;
-  };
-}();
-function Cancel$3(message) {
-  this.message = message;
-}
-Cancel$3.prototype.toString = function toString3() {
-  return "Cancel" + (this.message ? ": " + this.message : "");
-};
-Cancel$3.prototype.__CANCEL__ = true;
-var Cancel_1 = Cancel$3;
-var utils$7 = utils$e;
-var settle2 = settle$1;
-var cookies = cookies$1;
-var buildURL$1 = buildURL$2;
-var buildFullPath2 = buildFullPath$1;
-var parseHeaders2 = parseHeaders$1;
-var isURLSameOrigin = isURLSameOrigin$1;
-var createError2 = createError$2;
-var defaults$4 = defaults_1;
-var Cancel$2 = Cancel_1;
-var xhr = function xhrAdapter(config2) {
-  return new Promise(function dispatchXhrRequest(resolve2, reject) {
-    var requestData = config2.data;
-    var requestHeaders = config2.headers;
-    var responseType = config2.responseType;
-    var onCanceled;
-    function done() {
-      if (config2.cancelToken) {
-        config2.cancelToken.unsubscribe(onCanceled);
-      }
-      if (config2.signal) {
-        config2.signal.removeEventListener("abort", onCanceled);
-      }
-    }
-    if (utils$7.isFormData(requestData)) {
-      delete requestHeaders["Content-Type"];
-    }
-    var request2 = new XMLHttpRequest();
-    if (config2.auth) {
-      var username = config2.auth.username || "";
-      var password = config2.auth.password ? unescape(encodeURIComponent(config2.auth.password)) : "";
-      requestHeaders.Authorization = "Basic " + btoa(username + ":" + password);
-    }
-    var fullPath = buildFullPath2(config2.baseURL, config2.url);
-    request2.open(config2.method.toUpperCase(), buildURL$1(fullPath, config2.params, config2.paramsSerializer), true);
-    request2.timeout = config2.timeout;
-    function onloadend() {
-      if (!request2) {
-        return;
-      }
-      var responseHeaders = "getAllResponseHeaders" in request2 ? parseHeaders2(request2.getAllResponseHeaders()) : null;
-      var responseData = !responseType || responseType === "text" || responseType === "json" ? request2.responseText : request2.response;
-      var response = {
-        data: responseData,
-        status: request2.status,
-        statusText: request2.statusText,
-        headers: responseHeaders,
-        config: config2,
-        request: request2
-      };
-      settle2(function _resolve(value) {
-        resolve2(value);
-        done();
-      }, function _reject(err) {
-        reject(err);
-        done();
-      }, response);
-      request2 = null;
-    }
-    if ("onloadend" in request2) {
-      request2.onloadend = onloadend;
-    } else {
-      request2.onreadystatechange = function handleLoad() {
-        if (!request2 || request2.readyState !== 4) {
-          return;
-        }
-        if (request2.status === 0 && !(request2.responseURL && request2.responseURL.indexOf("file:") === 0)) {
-          return;
-        }
-        setTimeout(onloadend);
-      };
-    }
-    request2.onabort = function handleAbort() {
-      if (!request2) {
-        return;
-      }
-      reject(createError2("Request aborted", config2, "ECONNABORTED", request2));
-      request2 = null;
-    };
-    request2.onerror = function handleError2() {
-      reject(createError2("Network Error", config2, null, request2));
-      request2 = null;
-    };
-    request2.ontimeout = function handleTimeout() {
-      var timeoutErrorMessage = config2.timeout ? "timeout of " + config2.timeout + "ms exceeded" : "timeout exceeded";
-      var transitional2 = config2.transitional || defaults$4.transitional;
-      if (config2.timeoutErrorMessage) {
-        timeoutErrorMessage = config2.timeoutErrorMessage;
-      }
-      reject(createError2(timeoutErrorMessage, config2, transitional2.clarifyTimeoutError ? "ETIMEDOUT" : "ECONNABORTED", request2));
-      request2 = null;
-    };
-    if (utils$7.isStandardBrowserEnv()) {
-      var xsrfValue = (config2.withCredentials || isURLSameOrigin(fullPath)) && config2.xsrfCookieName ? cookies.read(config2.xsrfCookieName) : void 0;
-      if (xsrfValue) {
-        requestHeaders[config2.xsrfHeaderName] = xsrfValue;
-      }
-    }
-    if ("setRequestHeader" in request2) {
-      utils$7.forEach(requestHeaders, function setRequestHeader(val, key2) {
-        if (typeof requestData === "undefined" && key2.toLowerCase() === "content-type") {
-          delete requestHeaders[key2];
-        } else {
-          request2.setRequestHeader(key2, val);
-        }
-      });
-    }
-    if (!utils$7.isUndefined(config2.withCredentials)) {
-      request2.withCredentials = !!config2.withCredentials;
-    }
-    if (responseType && responseType !== "json") {
-      request2.responseType = config2.responseType;
-    }
-    if (typeof config2.onDownloadProgress === "function") {
-      request2.addEventListener("progress", config2.onDownloadProgress);
-    }
-    if (typeof config2.onUploadProgress === "function" && request2.upload) {
-      request2.upload.addEventListener("progress", config2.onUploadProgress);
-    }
-    if (config2.cancelToken || config2.signal) {
-      onCanceled = function(cancel) {
-        if (!request2) {
-          return;
-        }
-        reject(!cancel || cancel && cancel.type ? new Cancel$2("canceled") : cancel);
-        request2.abort();
-        request2 = null;
-      };
-      config2.cancelToken && config2.cancelToken.subscribe(onCanceled);
-      if (config2.signal) {
-        config2.signal.aborted ? onCanceled() : config2.signal.addEventListener("abort", onCanceled);
-      }
-    }
-    if (!requestData) {
-      requestData = null;
-    }
-    request2.send(requestData);
-  });
-};
-var utils$6 = utils$e;
-var normalizeHeaderName2 = normalizeHeaderName$1;
-var enhanceError2 = enhanceError$2;
-var DEFAULT_CONTENT_TYPE = {
-  "Content-Type": "application/x-www-form-urlencoded"
-};
-function setContentTypeIfUnset(headers, value) {
-  if (!utils$6.isUndefined(headers) && utils$6.isUndefined(headers["Content-Type"])) {
-    headers["Content-Type"] = value;
-  }
-}
-function getDefaultAdapter() {
-  var adapter;
-  if (typeof XMLHttpRequest !== "undefined") {
-    adapter = xhr;
-  } else if (typeof browser$1$1 !== "undefined" && Object.prototype.toString.call(browser$1$1) === "[object process]") {
-    adapter = xhr;
-  }
-  return adapter;
-}
-function stringifySafely(rawValue, parser, encoder) {
-  if (utils$6.isString(rawValue)) {
-    try {
-      (parser || JSON.parse)(rawValue);
-      return utils$6.trim(rawValue);
-    } catch (e2) {
-      if (e2.name !== "SyntaxError") {
-        throw e2;
-      }
-    }
-  }
-  return (encoder || JSON.stringify)(rawValue);
-}
-var defaults$3 = {
-  transitional: {
-    silentJSONParsing: true,
-    forcedJSONParsing: true,
-    clarifyTimeoutError: false
-  },
-  adapter: getDefaultAdapter(),
-  transformRequest: [function transformRequest(data2, headers) {
-    normalizeHeaderName2(headers, "Accept");
-    normalizeHeaderName2(headers, "Content-Type");
-    if (utils$6.isFormData(data2) || utils$6.isArrayBuffer(data2) || utils$6.isBuffer(data2) || utils$6.isStream(data2) || utils$6.isFile(data2) || utils$6.isBlob(data2)) {
-      return data2;
-    }
-    if (utils$6.isArrayBufferView(data2)) {
-      return data2.buffer;
-    }
-    if (utils$6.isURLSearchParams(data2)) {
-      setContentTypeIfUnset(headers, "application/x-www-form-urlencoded;charset=utf-8");
-      return data2.toString();
-    }
-    if (utils$6.isObject(data2) || headers && headers["Content-Type"] === "application/json") {
-      setContentTypeIfUnset(headers, "application/json");
-      return stringifySafely(data2);
-    }
-    return data2;
-  }],
-  transformResponse: [function transformResponse(data2) {
-    var transitional2 = this.transitional || defaults$3.transitional;
-    var silentJSONParsing = transitional2 && transitional2.silentJSONParsing;
-    var forcedJSONParsing = transitional2 && transitional2.forcedJSONParsing;
-    var strictJSONParsing = !silentJSONParsing && this.responseType === "json";
-    if (strictJSONParsing || forcedJSONParsing && utils$6.isString(data2) && data2.length) {
-      try {
-        return JSON.parse(data2);
-      } catch (e2) {
-        if (strictJSONParsing) {
-          if (e2.name === "SyntaxError") {
-            throw enhanceError2(e2, this, "E_JSON_PARSE");
-          }
-          throw e2;
-        }
-      }
-    }
-    return data2;
-  }],
-  timeout: 0,
-  xsrfCookieName: "XSRF-TOKEN",
-  xsrfHeaderName: "X-XSRF-TOKEN",
-  maxContentLength: -1,
-  maxBodyLength: -1,
-  validateStatus: function validateStatus(status) {
-    return status >= 200 && status < 300;
-  },
-  headers: {
-    common: {
-      "Accept": "application/json, text/plain, */*"
-    }
-  }
-};
-utils$6.forEach(["delete", "get", "head"], function forEachMethodNoData(method) {
-  defaults$3.headers[method] = {};
-});
-utils$6.forEach(["post", "put", "patch"], function forEachMethodWithData(method) {
-  defaults$3.headers[method] = utils$6.merge(DEFAULT_CONTENT_TYPE);
-});
-var defaults_1 = defaults$3;
-var utils$5 = utils$e;
-var defaults$2 = defaults_1;
-var transformData$1 = function transformData(data2, headers, fns) {
-  var context = this || defaults$2;
-  utils$5.forEach(fns, function transform(fn) {
-    data2 = fn.call(context, data2, headers);
-  });
-  return data2;
-};
-var isCancel$1 = function isCancel(value) {
-  return !!(value && value.__CANCEL__);
-};
-var utils$4 = utils$e;
-var transformData2 = transformData$1;
-var isCancel2 = isCancel$1;
-var defaults$1 = defaults_1;
-var Cancel$1 = Cancel_1;
-function throwIfCancellationRequested(config2) {
-  if (config2.cancelToken) {
-    config2.cancelToken.throwIfRequested();
-  }
-  if (config2.signal && config2.signal.aborted) {
-    throw new Cancel$1("canceled");
-  }
-}
-var dispatchRequest$1 = function dispatchRequest(config2) {
-  throwIfCancellationRequested(config2);
-  config2.headers = config2.headers || {};
-  config2.data = transformData2.call(config2, config2.data, config2.headers, config2.transformRequest);
-  config2.headers = utils$4.merge(config2.headers.common || {}, config2.headers[config2.method] || {}, config2.headers);
-  utils$4.forEach(["delete", "get", "head", "post", "put", "patch", "common"], function cleanHeaderConfig(method) {
-    delete config2.headers[method];
-  });
-  var adapter = config2.adapter || defaults$1.adapter;
-  return adapter(config2).then(function onAdapterResolution(response) {
-    throwIfCancellationRequested(config2);
-    response.data = transformData2.call(config2, response.data, response.headers, config2.transformResponse);
-    return response;
-  }, function onAdapterRejection(reason) {
-    if (!isCancel2(reason)) {
-      throwIfCancellationRequested(config2);
-      if (reason && reason.response) {
-        reason.response.data = transformData2.call(config2, reason.response.data, reason.response.headers, config2.transformResponse);
-      }
-    }
-    return Promise.reject(reason);
-  });
-};
-var utils$3 = utils$e;
-var mergeConfig$2 = function mergeConfig(config1, config2) {
-  config2 = config2 || {};
-  var config3 = {};
-  function getMergedValue(target, source2) {
-    if (utils$3.isPlainObject(target) && utils$3.isPlainObject(source2)) {
-      return utils$3.merge(target, source2);
-    } else if (utils$3.isPlainObject(source2)) {
-      return utils$3.merge({}, source2);
-    } else if (utils$3.isArray(source2)) {
-      return source2.slice();
-    }
-    return source2;
-  }
-  function mergeDeepProperties(prop) {
-    if (!utils$3.isUndefined(config2[prop])) {
-      return getMergedValue(config1[prop], config2[prop]);
-    } else if (!utils$3.isUndefined(config1[prop])) {
-      return getMergedValue(void 0, config1[prop]);
-    }
-  }
-  function valueFromConfig2(prop) {
-    if (!utils$3.isUndefined(config2[prop])) {
-      return getMergedValue(void 0, config2[prop]);
-    }
-  }
-  function defaultToConfig2(prop) {
-    if (!utils$3.isUndefined(config2[prop])) {
-      return getMergedValue(void 0, config2[prop]);
-    } else if (!utils$3.isUndefined(config1[prop])) {
-      return getMergedValue(void 0, config1[prop]);
-    }
-  }
-  function mergeDirectKeys(prop) {
-    if (prop in config2) {
-      return getMergedValue(config1[prop], config2[prop]);
-    } else if (prop in config1) {
-      return getMergedValue(void 0, config1[prop]);
-    }
-  }
-  var mergeMap = {
-    "url": valueFromConfig2,
-    "method": valueFromConfig2,
-    "data": valueFromConfig2,
-    "baseURL": defaultToConfig2,
-    "transformRequest": defaultToConfig2,
-    "transformResponse": defaultToConfig2,
-    "paramsSerializer": defaultToConfig2,
-    "timeout": defaultToConfig2,
-    "timeoutMessage": defaultToConfig2,
-    "withCredentials": defaultToConfig2,
-    "adapter": defaultToConfig2,
-    "responseType": defaultToConfig2,
-    "xsrfCookieName": defaultToConfig2,
-    "xsrfHeaderName": defaultToConfig2,
-    "onUploadProgress": defaultToConfig2,
-    "onDownloadProgress": defaultToConfig2,
-    "decompress": defaultToConfig2,
-    "maxContentLength": defaultToConfig2,
-    "maxBodyLength": defaultToConfig2,
-    "transport": defaultToConfig2,
-    "httpAgent": defaultToConfig2,
-    "httpsAgent": defaultToConfig2,
-    "cancelToken": defaultToConfig2,
-    "socketPath": defaultToConfig2,
-    "responseEncoding": defaultToConfig2,
-    "validateStatus": mergeDirectKeys
-  };
-  utils$3.forEach(Object.keys(config1).concat(Object.keys(config2)), function computeConfigValue(prop) {
-    var merge2 = mergeMap[prop] || mergeDeepProperties;
-    var configValue = merge2(prop);
-    utils$3.isUndefined(configValue) && merge2 !== mergeDirectKeys || (config3[prop] = configValue);
-  });
-  return config3;
-};
-var data = {
-  "version": "0.26.0"
-};
-var VERSION = data.version;
-var validators$1 = {};
-["object", "boolean", "number", "function", "string", "symbol"].forEach(function(type, i2) {
-  validators$1[type] = function validator2(thing) {
-    return typeof thing === type || "a" + (i2 < 1 ? "n " : " ") + type;
-  };
-});
-var deprecatedWarnings = {};
-validators$1.transitional = function transitional(validator2, version2, message) {
-  function formatMessage(opt, desc) {
-    return "[Axios v" + VERSION + "] Transitional option '" + opt + "'" + desc + (message ? ". " + message : "");
-  }
-  return function(value, opt, opts) {
-    if (validator2 === false) {
-      throw new Error(formatMessage(opt, " has been removed" + (version2 ? " in " + version2 : "")));
-    }
-    if (version2 && !deprecatedWarnings[opt]) {
-      deprecatedWarnings[opt] = true;
-      console.warn(formatMessage(opt, " has been deprecated since v" + version2 + " and will be removed in the near future"));
-    }
-    return validator2 ? validator2(value, opt, opts) : true;
-  };
-};
-function assertOptions(options, schema, allowUnknown) {
-  if (typeof options !== "object") {
-    throw new TypeError("options must be an object");
-  }
-  var keys = Object.keys(options);
-  var i2 = keys.length;
-  while (i2-- > 0) {
-    var opt = keys[i2];
-    var validator2 = schema[opt];
-    if (validator2) {
-      var value = options[opt];
-      var result = value === void 0 || validator2(value, opt, options);
-      if (result !== true) {
-        throw new TypeError("option " + opt + " must be " + result);
-      }
-      continue;
-    }
-    if (allowUnknown !== true) {
-      throw Error("Unknown option " + opt);
-    }
-  }
-}
-var validator$1 = {
-  assertOptions,
-  validators: validators$1
-};
-var utils$2 = utils$e;
-var buildURL2 = buildURL$2;
-var InterceptorManager = InterceptorManager_1;
-var dispatchRequest2 = dispatchRequest$1;
-var mergeConfig$1 = mergeConfig$2;
-var validator = validator$1;
-var validators = validator.validators;
-function Axios$1(instanceConfig) {
-  this.defaults = instanceConfig;
-  this.interceptors = {
-    request: new InterceptorManager(),
-    response: new InterceptorManager()
-  };
-}
-Axios$1.prototype.request = function request(configOrUrl, config2) {
-  if (typeof configOrUrl === "string") {
-    config2 = config2 || {};
-    config2.url = configOrUrl;
-  } else {
-    config2 = configOrUrl || {};
-  }
-  config2 = mergeConfig$1(this.defaults, config2);
-  if (config2.method) {
-    config2.method = config2.method.toLowerCase();
-  } else if (this.defaults.method) {
-    config2.method = this.defaults.method.toLowerCase();
-  } else {
-    config2.method = "get";
-  }
-  var transitional2 = config2.transitional;
-  if (transitional2 !== void 0) {
-    validator.assertOptions(transitional2, {
-      silentJSONParsing: validators.transitional(validators.boolean),
-      forcedJSONParsing: validators.transitional(validators.boolean),
-      clarifyTimeoutError: validators.transitional(validators.boolean)
-    }, false);
-  }
-  var requestInterceptorChain = [];
-  var synchronousRequestInterceptors = true;
-  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
-    if (typeof interceptor.runWhen === "function" && interceptor.runWhen(config2) === false) {
-      return;
-    }
-    synchronousRequestInterceptors = synchronousRequestInterceptors && interceptor.synchronous;
-    requestInterceptorChain.unshift(interceptor.fulfilled, interceptor.rejected);
-  });
-  var responseInterceptorChain = [];
-  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
-    responseInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
-  });
-  var promise;
-  if (!synchronousRequestInterceptors) {
-    var chain = [dispatchRequest2, void 0];
-    Array.prototype.unshift.apply(chain, requestInterceptorChain);
-    chain = chain.concat(responseInterceptorChain);
-    promise = Promise.resolve(config2);
-    while (chain.length) {
-      promise = promise.then(chain.shift(), chain.shift());
-    }
-    return promise;
-  }
-  var newConfig = config2;
-  while (requestInterceptorChain.length) {
-    var onFulfilled = requestInterceptorChain.shift();
-    var onRejected = requestInterceptorChain.shift();
-    try {
-      newConfig = onFulfilled(newConfig);
-    } catch (error) {
-      onRejected(error);
-      break;
-    }
-  }
-  try {
-    promise = dispatchRequest2(newConfig);
-  } catch (error) {
-    return Promise.reject(error);
-  }
-  while (responseInterceptorChain.length) {
-    promise = promise.then(responseInterceptorChain.shift(), responseInterceptorChain.shift());
-  }
-  return promise;
-};
-Axios$1.prototype.getUri = function getUri(config2) {
-  config2 = mergeConfig$1(this.defaults, config2);
-  return buildURL2(config2.url, config2.params, config2.paramsSerializer).replace(/^\?/, "");
-};
-utils$2.forEach(["delete", "get", "head", "options"], function forEachMethodNoData2(method) {
-  Axios$1.prototype[method] = function(url, config2) {
-    return this.request(mergeConfig$1(config2 || {}, {
-      method,
-      url,
-      data: (config2 || {}).data
-    }));
-  };
-});
-utils$2.forEach(["post", "put", "patch"], function forEachMethodWithData2(method) {
-  Axios$1.prototype[method] = function(url, data2, config2) {
-    return this.request(mergeConfig$1(config2 || {}, {
-      method,
-      url,
-      data: data2
-    }));
-  };
-});
-var Axios_1 = Axios$1;
-var Cancel = Cancel_1;
-function CancelToken(executor) {
-  if (typeof executor !== "function") {
-    throw new TypeError("executor must be a function.");
-  }
-  var resolvePromise;
-  this.promise = new Promise(function promiseExecutor(resolve2) {
-    resolvePromise = resolve2;
-  });
-  var token2 = this;
-  this.promise.then(function(cancel) {
-    if (!token2._listeners)
-      return;
-    var i2;
-    var l2 = token2._listeners.length;
-    for (i2 = 0; i2 < l2; i2++) {
-      token2._listeners[i2](cancel);
-    }
-    token2._listeners = null;
-  });
-  this.promise.then = function(onfulfilled) {
-    var _resolve;
-    var promise = new Promise(function(resolve2) {
-      token2.subscribe(resolve2);
-      _resolve = resolve2;
-    }).then(onfulfilled);
-    promise.cancel = function reject() {
-      token2.unsubscribe(_resolve);
-    };
-    return promise;
-  };
-  executor(function cancel(message) {
-    if (token2.reason) {
-      return;
-    }
-    token2.reason = new Cancel(message);
-    resolvePromise(token2.reason);
-  });
-}
-CancelToken.prototype.throwIfRequested = function throwIfRequested() {
-  if (this.reason) {
-    throw this.reason;
-  }
-};
-CancelToken.prototype.subscribe = function subscribe2(listener) {
-  if (this.reason) {
-    listener(this.reason);
-    return;
-  }
-  if (this._listeners) {
-    this._listeners.push(listener);
-  } else {
-    this._listeners = [listener];
-  }
-};
-CancelToken.prototype.unsubscribe = function unsubscribe(listener) {
-  if (!this._listeners) {
-    return;
-  }
-  var index2 = this._listeners.indexOf(listener);
-  if (index2 !== -1) {
-    this._listeners.splice(index2, 1);
-  }
-};
-CancelToken.source = function source() {
-  var cancel;
-  var token2 = new CancelToken(function executor(c2) {
-    cancel = c2;
-  });
-  return {
-    token: token2,
-    cancel
-  };
-};
-var CancelToken_1 = CancelToken;
-var spread = function spread2(callback) {
-  return function wrap(arr) {
-    return callback.apply(null, arr);
-  };
-};
-var utils$1 = utils$e;
-var isAxiosError = function isAxiosError2(payload) {
-  return utils$1.isObject(payload) && payload.isAxiosError === true;
-};
-var utils = utils$e;
-var bind2 = bind$2;
-var Axios = Axios_1;
-var mergeConfig2 = mergeConfig$2;
-var defaults = defaults_1;
-function createInstance(defaultConfig) {
-  var context = new Axios(defaultConfig);
-  var instance = bind2(Axios.prototype.request, context);
-  utils.extend(instance, Axios.prototype, context);
-  utils.extend(instance, context);
-  instance.create = function create2(instanceConfig) {
-    return createInstance(mergeConfig2(defaultConfig, instanceConfig));
-  };
-  return instance;
-}
-var axios$1 = createInstance(defaults);
-axios$1.Axios = Axios;
-axios$1.Cancel = Cancel_1;
-axios$1.CancelToken = CancelToken_1;
-axios$1.isCancel = isCancel$1;
-axios$1.VERSION = data.version;
-axios$1.all = function all(promises) {
-  return Promise.all(promises);
-};
-axios$1.spread = spread;
-axios$1.isAxiosError = isAxiosError;
-axios$2.exports = axios$1;
-axios$2.exports.default = axios$1;
-var axios = axios$2.exports;
-const client = axios.create({
-  baseURL: "https://dmnd.network/verify/v1"
-});
-client.interceptors.request.use((request2) => {
-  request2.headers["X-Api-Key"] = store$1.getters.apiKey;
-  return request2;
-}, function(err) {
-  return Promise.reject(err);
-});
-client.interceptors.response.use((response) => response, (err) => {
-  var _a;
-  if (err.message === "Network Error") {
-    return Promise.reject(new NetworkError());
-  }
-  switch ((_a = err.response) == null ? void 0 : _a.status) {
-    case 400:
-      return Promise.reject(new BadRequestError(err.response.data));
-    case 401:
-      return Promise.reject(new InvalidCredentialsError(err.response.data));
-    case 429:
-      return Promise.reject(new RateLimitedError(err.response.data));
-    case 500:
-      return Promise.reject(new InternalServerError(err.response.data));
-    default:
-      return Promise.reject(new InternalServerError(err.response.data));
-  }
-});
-const contractMetadata = async (_a) => {
-  var _b = _a, { chain, network, contract } = _b, additionalArgs = __objRest(_b, ["chain", "network", "contract"]);
-  return client.post("/contract/info", __spreadValues({
-    chain,
-    network,
-    contract
-  }, additionalArgs));
-};
-const createNonce = async ({ chain, address }) => {
-  return client.post("/address/nonce", {
-    chain,
-    address
-  });
-};
-const verifyNonce = async ({ nonce, signature: signature2 }) => {
-  return client.post("/address/verify", {
-    nonce,
-    signature: signature2
-  });
-};
-const verifyNFT = async (_c) => {
-  var _d = _c, { chain, network, contract, unlockables, wallet, user } = _d, additionalArgs = __objRest(_d, ["chain", "network", "contract", "unlockables", "wallet", "user"]);
-  return client.post("/asset/nft", __spreadValues({
-    chain,
-    network,
-    contract,
-    unlockables,
-    wallet,
-    user
-  }, additionalArgs));
-};
-const state = () => {
-  return {
-    open: false,
-    apiKey: null,
-    view: "LOADING",
-    supportedChains: [],
-    app: {
-      id: null,
-      name: null,
-      attributionRequired: true
-    },
-    request: null,
-    response: null,
-    contractMetadata: null,
-    wallets: [],
-    provider: null,
-    error: {
-      code: null,
-      message: null,
-      fields: null,
-      requestId: null
-    }
-  };
-};
-const getters = {
-  open: (state2) => state2.open,
-  apiKey: (state2) => state2.apiKey,
-  view: (state2) => state2.view,
-  app: (state2) => state2.app,
-  contract: (state2) => state2.contract,
-  contractMetadata: (state2) => state2.contractMetadata,
-  provider: (state2) => state2.provider,
-  attempt: (state2) => state2.attempt,
-  error: (state2) => state2.error,
-  walletHmac: (state2) => ({ chain, address }) => {
-    return state2.wallets.filter((wallet) => {
-      if (wallet.hmac.includes(":")) {
-        const [exp2, hmac3] = wallet.hmac.split(":");
-        return exp2 > Math.floor(Date.now() / 1e3);
-      }
-      return true;
-    }).find((wallet) => {
-      return wallet.chain === chain && wallet.address === address;
-    });
-  },
-  contractLink: ({ contractMetadata: contractMetadata2 }) => {
-    var _a;
-    if ((_a = contractMetadata2.listing) == null ? void 0 : _a.url) {
-      return contractMetadata2.listing.url;
-    }
-    const link = contractMetadata2.socials.find(({ type }) => type === "WEB");
-    if (link)
-      return link.url;
-  },
-  request: (state2) => state2.request,
-  response: (state2) => state2.response
-};
-const actions = {
-  initialize({ commit: commit2 }, { apiKey, providers }) {
-    const supportedChains = providers.map((provider) => provider.supportedChains).flat().filter(function(item, pos, self2) {
-      return self2.indexOf(item) === pos;
-    });
-    commit2("SET_API_KEY", apiKey);
-    commit2("SET_SUPPORTED_CHAINS", supportedChains);
-  },
-  reset({ commit: commit2 }) {
-    commit2("SET_RESPONSE", null);
-    commit2("SET_VIEW", "START");
-  },
-  handleError({ commit: commit2 }, err) {
-    commit2("SET_VIEW", "ERROR");
-    switch (err.name) {
-      case "BadRequestError":
-        commit2("SET_ERROR", {
-          code: "BAD_REQUEST",
-          message: err.message,
-          fields: err.fields,
-          requestId: err.requestId
-        });
-        break;
-      case "InvalidCredentialsError":
-        commit2("SET_ERROR", {
-          code: "BAD_CREDENTIALS",
-          message: err.message,
-          requestId: err.requestId
-        });
-        break;
-      case "InternalServerError":
-        commit2("SET_ERROR", {
-          code: "SERVER_ERROR",
-          message: err.message,
-          requestId: err.requestId
-        });
-        break;
-      case "RateLimitedError":
-        commit2("SET_ERROR", {
-          code: "SERVER_ERROR",
-          message: err.message,
-          requestId: err.requestId
-        });
-        commit2("SET_VIEW", "RATE_LIMITED");
-        break;
-      case "NetworkError":
-        commit2("SET_ERROR", { code: "NETWORK" });
-        break;
-      case "UserRejectedRequestError":
-        commit2("SET_ERROR", { code: "CONNECTION_DENIED" });
-        break;
-      case "UnsupportedChainError":
-        commit2("SET_ERROR", { code: "CHAIN_INVALID" });
-        break;
-      default:
-        commit2("SET_ERROR", { code: "UNKNOWN", message: err.message });
-        break;
-    }
-  },
-  async startRequest({ commit: commit2, dispatch: dispatch2 }, config2) {
-    var _a, _b;
-    commit2("SET_REQUEST", config2);
-    commit2("SET_RESPONSE", null);
-    await dispatch2("getContractMetadata", {
-      chain: config2.chain,
-      network: config2.network,
-      contract: config2.contract,
-      marketplace: config2.marketplace,
-      externalImages: {
-        avatarImage: (_a = config2.metadata) == null ? void 0 : _a.avatarImage,
-        bannerImage: (_b = config2.metadata) == null ? void 0 : _b.bannerImage
-      }
-    });
-  },
-  async getContractMetadata({ commit: commit2, dispatch: dispatch2, getters: getters2 }, config2) {
-    try {
-      const { data: _metadata } = await contractMetadata(config2);
-      const metadata = __spreadValues({}, _metadata);
-      if (getters2.request.metadata) {
-        const { name, socials } = getters2.request.metadata;
-        metadata.name = name || metadata.name;
-        metadata.socials = socials || metadata.socials;
-      }
-      commit2("SET_VIEW", "START");
-      commit2("METADATA_LOADED", metadata);
-    } catch (err) {
-      return dispatch2("handleError", err);
-    }
-  },
-  async connectWallet({ commit: commit2, dispatch: dispatch2, getters: getters2 }, walletName) {
-    const { chain, network } = getters2.request;
-    commit2("SET_VIEW", "CONNECTING");
-    try {
-      Wallet$1.setActive(walletName);
-      await Wallet$1.connect(chain, network);
-      commit2("WALLET_CONNECTED");
-    } catch (err) {
-      return dispatch2("handleError", err);
-    }
-    const address = await Wallet$1.getAddress();
-    const cachedResult = getters2.walletHmac({ chain, address });
-    if (cachedResult) {
-      commit2("NONCE_VERIFIED", cachedResult);
-      return cachedResult;
-    }
-    const { data: data2 } = await createNonce({ chain, address });
-    commit2("SET_VIEW", "SIGNING");
-    let signature2;
-    try {
-      signature2 = await Wallet$1.sign(data2.nonce);
-    } catch (err) {
-      dispatch2("handleError", err);
-      return;
-    }
-    await dispatch2("verifyNonce", { nonce: data2.nonce, signature: signature2 });
-  },
-  async verifyNonce({ commit: commit2, dispatch: dispatch2 }, { nonce, signature: signature2 }) {
-    try {
-      const { data: nonceResult } = await verifyNonce({ nonce, signature: signature2 });
-      commit2("NONCE_VERIFIED", nonceResult);
-      return nonceResult;
-    } catch (err) {
-      dispatch2("handleError", err);
-    }
-  },
-  async verifyNft({ commit: commit2, dispatch: dispatch2, getters: getters2 }, wallet) {
-    commit2("SET_VIEW", "VERIFYING");
-    try {
-      const { data: attempt } = await verifyNFT(__spreadProps(__spreadValues({}, getters2.request), {
-        wallet: {
-          address: wallet.address,
-          hmac: wallet.hmac
-        }
-      }));
-      commit2("SET_VIEW", attempt.result.ownership ? "SUCCESS" : "FAILED");
-      commit2("SET_RESPONSE", attempt);
-      return attempt;
-    } catch (err) {
-      dispatch2("handleError", err);
-    }
-  }
-};
-const mutations = {
-  SET_API_KEY(state2, apiKey) {
-    state2.apiKey = apiKey;
-  },
-  SET_SUPPORTED_CHAINS(state2, chains2) {
-    state2.supportedChains = chains2;
-  },
-  SET_VIEW(state2, view) {
-    state2.view = view;
-  },
-  SET_ERROR(state2, { code: code2, message, fields, requestId }) {
-    state2.error = { code: code2, message, fields, requestId };
-  },
-  SET_REQUEST(state2, request2) {
-    state2.request = request2;
-  },
-  SET_RESPONSE(state2, response) {
-    state2.response = response;
-  },
-  SHOW_MODAL(state2) {
-    state2.attempt = null;
-    state2.error = null;
-    state2.open = true;
-  },
-  CLOSE_MODAL(state2) {
-    state2.open = false;
-  },
-  METADATA_LOADED(state2, _e) {
-    var _f = _e, { app } = _f, metadata = __objRest(_f, ["app"]);
-    state2.app = app;
-    state2.contractMetadata = metadata;
-  },
-  WALLET_CONNECTED(state2, provider) {
-    state2.provider = provider;
-  },
-  NONCE_VERIFIED(state2, result) {
-    const idx = state2.wallets.findIndex(({ address, chain }) => address === result.address && chain === result.chain);
-    if (idx === -1) {
-      state2.wallets.push(result);
-    } else {
-      state2.wallets[idx] = result;
-    }
-  }
-};
-const store = createStore({
-  state,
-  getters,
-  actions,
-  mutations
-});
-var store$1 = store;
 function T(t2, n2, ...u2) {
   if (t2 in n2) {
     let o2 = n2[t2];
@@ -38688,17 +38688,18 @@ var style = "";
 var tailwind = "";
 var initializeUI = (el, { apiKey, providers }) => {
   const app = createApp(Modal);
-  app.use(store$1);
+  app.use(store);
   app.directive("tooltip", VTooltip);
   app.mount(el);
-  return { app, store: store$1 };
+  return { app, store };
 };
 class VerifySdk$1 extends EventEmitter$1 {
-  constructor(apiKey, providers) {
+  constructor(apiKey, { providers, endpoint }) {
     super();
     if (apiKey.slice(0, 3) === "sk_") {
       throw new DumbassError();
     }
+    setupClient(endpoint);
     this.el = null;
     this.app = null;
     this._storeUnsub = null;
@@ -38791,8 +38792,10 @@ class VerifySdk$1 extends EventEmitter$1 {
   }
 }
 class VerifySdk extends VerifySdk$1 {
-  constructor(apiKey) {
-    super(apiKey, EthereumProviders);
+  constructor(apiKey, opts = {}) {
+    super(apiKey, __spreadValues({
+      providers: EthereumProviders
+    }, opts));
   }
 }
 export { VerifySdk as default };

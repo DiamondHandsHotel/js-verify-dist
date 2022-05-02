@@ -1,6 +1,6 @@
 {
   "name": "@diamondhh/verify",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "SDK for Verify from Diamond Hands Hotel",
   "main": "./dist/verify.es.js",
   "scripts": {
