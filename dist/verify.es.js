@@ -18348,7 +18348,7 @@ class MetaMaskProvider {
   async getAddress() {
     return this.address;
   }
-  async connect(_chain, network) {
+  async connect(_chain, network = "mainnet") {
     let address;
     try {
       [address] = await window.ethereum.request({
@@ -30846,7 +30846,7 @@ class WalletConnectProvider {
     const [account] = this.provider.accounts;
     return account;
   }
-  async connect(_chain, network) {
+  async connect(_chain, network = "mainnet") {
     return new Promise(async (r2, j2) => {
       let setForceOpen = false;
       if (!this.provider.connected) {
@@ -33318,6 +33318,7 @@ const actions = {
     commit2("SET_VIEW", "START");
   },
   handleError({ commit: commit2 }, err) {
+    console.error(err);
     commit2("SET_VIEW", "ERROR");
     switch (err.name) {
       case "BadRequestError":

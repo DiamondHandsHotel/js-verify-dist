@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/DiamondHandsHotel/verify">
-    <img src="images/logo.svg" alt="Verify logo" height="40" width="auto">
+    <img src="https://github.com/DiamondHandsHotel/verify/raw/master/images/logo.svg" alt="Verify logo" height="40" width="auto">
   </a>
 
   <h3 align="center">Verify - Javascript SDK</h3>
@@ -28,7 +28,11 @@
 <!-- Demo/about -->
 ## About Verify
 
-[![Demo of Verify in use][product-screenshot]](https://diamondhandshotel.com/verify)
+<div align="center">
+  <a href="https://github.com/DiamondHandsHotel/verify">
+    <img src="https://github.com/DiamondHandsHotel/verify/raw/master/images/demo.gif" alt="Demo of Verify in use" height="400" width="auto">
+  </a>
+</div>
 
 Verify allows you to verify whether users own an NFT with one line of Javascript. It automatically handles connecting their wallet, signing a nonce and checking for ownership of NFTs under a specified contract.
 
@@ -165,8 +169,3 @@ Project Link: [https://github.com/DiamondHandsHotel/verify](https://github.com/D
 * [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-[product-screenshot]: images/demo.gif

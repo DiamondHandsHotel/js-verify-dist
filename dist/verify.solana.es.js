@@ -7614,6 +7614,7 @@ const actions = {
     commit2("SET_VIEW", "START");
   },
   handleError({ commit: commit2 }, err) {
+    console.error(err);
     commit2("SET_VIEW", "ERROR");
     switch (err.name) {
       case "BadRequestError":
